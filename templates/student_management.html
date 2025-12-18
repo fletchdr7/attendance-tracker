@@ -231,31 +231,31 @@
                     <label for="newAsYear">AS Year</label>
                     <select id="newAsYear" name="as_year">
                         <option value="">-- Select AS Year --</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
-                        <option value="250">250</option>
-                        <option value="300">300</option>
-                        <option value="400">400</option>
+                        <option value="AS100">AS100</option>
+                        <option value="AS200">AS200</option>
+                        <option value="AS250">AS250</option>
+                        <option value="AS300">AS300</option>
+                        <option value="AS400">AS400</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label for="newAeroClass">AERO Class</label>
                     <select id="newAeroClass" name="aero_class">
                         <option value="">-- Select AERO Class --</option>
-                        <option value="AERO 1020">AERO 1020 - Heritage and Values of the USAF II</option>
-                        <option value="AERO 2020">AERO 2020 - Team and Leadership Fundamentals II</option>
-                        <option value="AERO 3020">AERO 3020 - Leading People and Effective Communication II</option>
-                        <option value="AERO 4020">AERO 4020 - National Security/Commissioning Preparation II</option>
+                        <option value="AERO 1020 - Heritage and Values of the USAF II">AERO 1020 - Heritage and Values of the USAF II</option>
+                        <option value="AERO 2020 - Team and Leadership Fundamentals II">AERO 2020 - Team and Leadership Fundamentals II</option>
+                        <option value="AERO 3020 - Leading People and Effective Communication II">AERO 3020 - Leading People and Effective Communication II</option>
+                        <option value="AERO 4020 - National Security/Commissioning Preparation II">AERO 4020 - National Security/Commissioning Preparation II</option>
                     </select>
                 </div>
                 <div class="form-group" id="aeroClass2Group" style="display: none;">
                     <label for="newAeroClass2">AERO Class 2 <span style="font-size: 12px; color: #666;">(Optional - AS250 only)</span></label>
                     <select id="newAeroClass2" name="aero_class_2">
                         <option value="">-- Select AERO Class 2 (Optional) --</option>
-                        <option value="AERO 1020">AERO 1020 - Heritage and Values of the USAF II</option>
-                        <option value="AERO 2020">AERO 2020 - Team and Leadership Fundamentals II</option>
-                        <option value="AERO 3020">AERO 3020 - Leading People and Effective Communication II</option>
-                        <option value="AERO 4020">AERO 4020 - National Security/Commissioning Preparation II</option>
+                        <option value="AERO 1020 - Heritage and Values of the USAF II">AERO 1020 - Heritage and Values of the USAF II</option>
+                        <option value="AERO 2020 - Team and Leadership Fundamentals II">AERO 2020 - Team and Leadership Fundamentals II</option>
+                        <option value="AERO 3020 - Leading People and Effective Communication II">AERO 3020 - Leading People and Effective Communication II</option>
+                        <option value="AERO 4020 - National Security/Commissioning Preparation II">AERO 4020 - National Security/Commissioning Preparation II</option>
                     </select>
                 </div>
                 <div>
@@ -333,7 +333,7 @@
             const aeroClass2Select = document.getElementById('newAeroClass2');
             
             asYearSelect.addEventListener('change', function() {
-                if (this.value === '250') {
+                if (this.value === 'AS250') {
                     aeroClass2Group.style.display = 'block';
                 } else {
                     aeroClass2Group.style.display = 'none';
@@ -347,13 +347,17 @@
             e.preventDefault();
             
             const formData = new FormData(e.target);
+            const asYearValue = formData.get('as_year');
+            const aeroClassValue = formData.get('aero_class');
+            const aeroClass2Value = formData.get('aero_class_2');
+            
             const data = {
                 first_name: formData.get('first_name').trim(),
                 last_name: formData.get('last_name').trim(),
-                email: formData.get('email').trim() || null,
-                as_year: formData.get('as_year') || null,
-                aero_class: formData.get('aero_class') || null,
-                aero_class_2: formData.get('aero_class_2') || null
+                email: (formData.get('email') || '').trim() || null,
+                as_year: asYearValue ? asYearValue.trim() || null : null,
+                aero_class: aeroClassValue ? aeroClassValue.trim() || null : null,
+                aero_class_2: aeroClass2Value ? aeroClass2Value.trim() || null : null
             };
             
             const messageDiv = document.getElementById('addMessage');
@@ -398,14 +402,26 @@
             }
         });
         
-        // Delete Student Functionality
+        // Delete Student Functionality - Use event delegation for better reliability
         document.addEventListener('DOMContentLoaded', () => {
-            const deleteButtons = document.querySelectorAll('.delete-student-btn');
-            
-            deleteButtons.forEach(button => {
-                button.addEventListener('click', async function() {
-                    const studentId = this.getAttribute('data-student-id');
-                    const studentName = this.getAttribute('data-student-name');
+            // Use event delegation on the document body to handle all delete buttons
+            document.body.addEventListener('click', async function(e) {
+                if (e.target.classList.contains('delete-student-btn') || e.target.closest('.delete-student-btn')) {
+                    const button = e.target.classList.contains('delete-student-btn') ? e.target : e.target.closest('.delete-student-btn');
+                    
+                    if (button.disabled) {
+                        return; // Already processing
+                    }
+                    
+                    const studentId = button.getAttribute('data-student-id');
+                    const studentName = button.getAttribute('data-student-name');
+                    
+                    // Validate student ID
+                    if (!studentId || isNaN(parseInt(studentId))) {
+                        alert('Error: Invalid student ID');
+                        return;
+                    }
+                    
                     const row = document.getElementById(`student-row-${studentId}`);
                     
                     // Confirm deletion with warning about attendance records
@@ -419,8 +435,8 @@
                     }
                     
                     // Disable button and show deleting state
-                    this.disabled = true;
-                    this.textContent = '⏳ Deleting...';
+                    button.disabled = true;
+                    button.textContent = '⏳ Deleting...';
                     if (row) {
                         row.style.opacity = '0.5';
                     }
@@ -433,9 +449,16 @@
                             }
                         });
                         
-                        const data = await response.json();
-                        
+                        // Check if response is ok before trying to parse JSON
                         if (response.ok) {
+                            let data;
+                            try {
+                                data = await response.json();
+                            } catch (jsonError) {
+                                // If JSON parsing fails, still treat as success if status is 200-299
+                                data = { message: 'Student deleted successfully' };
+                            }
+                            
                             // Remove the row with animation
                             if (row) {
                                 row.style.transition = 'opacity 0.3s, transform 0.3s';
@@ -451,22 +474,32 @@
                                 window.location.reload();
                             }
                         } else {
-                            alert(`Error: ${data.error || 'Failed to delete student'}`);
-                            this.disabled = false;
-                            this.textContent = '🗑️ Delete';
+                            // Handle error response
+                            let errorMessage = `Error ${response.status}: ${response.statusText}`;
+                            try {
+                                const errorData = await response.json();
+                                errorMessage = errorData.error || errorMessage;
+                            } catch (jsonError) {
+                                // If JSON parsing fails, use status text
+                                errorMessage = `Error ${response.status}: ${response.statusText}`;
+                            }
+                            
+                            alert(`Error: ${errorMessage}`);
+                            button.disabled = false;
+                            button.textContent = '🗑️ Delete';
                             if (row) {
                                 row.style.opacity = '1';
                             }
                         }
                     } catch (error) {
-                        alert(`Error: ${error.message}`);
-                        this.disabled = false;
-                        this.textContent = '🗑️ Delete';
+                        alert(`Network Error: ${error.message}`);
+                        button.disabled = false;
+                        button.textContent = '🗑️ Delete';
                         if (row) {
                             row.style.opacity = '1';
                         }
                     }
-                });
+                }
             });
         });
     </script>
