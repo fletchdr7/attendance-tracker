@@ -1032,21 +1032,46 @@ def add_student():
     """Add a new student to the database"""
     try:
         data = request.json
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
         # Helper function to safely get and strip values
         def safe_strip(value, default=''):
             if value is None:
                 return default
-            if isinstance(value, str):
-                return value.strip() or default
-            return str(value).strip() if value else default
+            try:
+                if isinstance(value, str):
+                    result = value.strip()
+                    return result if result else default
+                # Convert to string if not None
+                result = str(value).strip()
+                return result if result else default
+            except (AttributeError, TypeError):
+                return default
         
+        # Helper to safely get optional fields (convert None/empty to None)
+        def get_optional_field(field_name):
+            value = data.get(field_name)
+            if value is None:
+                return None
+            try:
+                if isinstance(value, str):
+                    stripped = value.strip()
+                    return stripped if stripped else None
+                # Convert to string and strip
+                stripped = str(value).strip()
+                return stripped if stripped else None
+            except (AttributeError, TypeError):
+                return None
+        
+        # Safely extract all fields
         first_name = safe_strip(data.get('first_name'), '')
         last_name = safe_strip(data.get('last_name'), '')
-        student_id = safe_strip(data.get('student_id')) or None
-        email = safe_strip(data.get('email')) or None
-        as_year = safe_strip(data.get('as_year')) or None
-        aero_class = safe_strip(data.get('aero_class')) or None
-        aero_class_2 = safe_strip(data.get('aero_class_2')) or None
+        student_id = get_optional_field('student_id')
+        email = get_optional_field('email')
+        as_year = get_optional_field('as_year')
+        aero_class = get_optional_field('aero_class')
+        aero_class_2 = get_optional_field('aero_class_2')
         
         if not first_name or not last_name:
             return jsonify({'error': 'First name and last name are required'}), 400
