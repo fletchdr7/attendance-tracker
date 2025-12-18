@@ -1032,13 +1032,21 @@ def add_student():
     """Add a new student to the database"""
     try:
         data = request.json
-        first_name = data.get('first_name', '').strip()
-        last_name = data.get('last_name', '').strip()
-        student_id = data.get('student_id', '').strip() or None
-        email = data.get('email', '').strip() or None
-        as_year = data.get('as_year', '').strip() or None
-        aero_class = data.get('aero_class', '').strip() or None
-        aero_class_2 = data.get('aero_class_2', '').strip() or None
+        # Helper function to safely get and strip values
+        def safe_strip(value, default=''):
+            if value is None:
+                return default
+            if isinstance(value, str):
+                return value.strip() or default
+            return str(value).strip() if value else default
+        
+        first_name = safe_strip(data.get('first_name'), '')
+        last_name = safe_strip(data.get('last_name'), '')
+        student_id = safe_strip(data.get('student_id')) or None
+        email = safe_strip(data.get('email')) or None
+        as_year = safe_strip(data.get('as_year')) or None
+        aero_class = safe_strip(data.get('aero_class')) or None
+        aero_class_2 = safe_strip(data.get('aero_class_2')) or None
         
         if not first_name or not last_name:
             return jsonify({'error': 'First name and last name are required'}), 400
