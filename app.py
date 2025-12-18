@@ -1,11 +1,18 @@
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, text
-from models import db, Class, Student, Attendance
 from datetime import datetime, timedelta, date
 import secrets
 import pandas as pd
 import os
+import sys
+
+# Add current directory to Python path for Render deployment
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+from models import db, Class, Student, Attendance
 
 app = Flask(__name__)
 # Use environment variable for database path if available (for cloud deployment)
