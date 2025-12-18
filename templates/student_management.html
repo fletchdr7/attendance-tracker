@@ -350,14 +350,28 @@
             const asYearValue = formData.get('as_year');
             const aeroClassValue = formData.get('aero_class');
             const aeroClass2Value = formData.get('aero_class_2');
+            const aeroClass2Group = document.getElementById('aeroClass2Group');
+            
+            // Helper function to clean form values
+            const cleanValue = (value) => {
+                if (!value || typeof value !== 'string') return null;
+                const trimmed = value.trim();
+                return trimmed === '' ? null : trimmed;
+            };
+            
+            // Only include aero_class_2 if the field is visible (AS250 selected)
+            let aeroClass2Final = null;
+            if (aeroClass2Group && aeroClass2Group.style.display !== 'none') {
+                aeroClass2Final = cleanValue(aeroClass2Value);
+            }
             
             const data = {
                 first_name: formData.get('first_name').trim(),
                 last_name: formData.get('last_name').trim(),
-                email: (formData.get('email') || '').trim() || null,
-                as_year: asYearValue ? asYearValue.trim() || null : null,
-                aero_class: aeroClassValue ? aeroClassValue.trim() || null : null,
-                aero_class_2: aeroClass2Value ? aeroClass2Value.trim() || null : null
+                email: cleanValue(formData.get('email')),
+                as_year: cleanValue(asYearValue),
+                aero_class: cleanValue(aeroClassValue),
+                aero_class_2: aeroClass2Final
             };
             
             const messageDiv = document.getElementById('addMessage');
