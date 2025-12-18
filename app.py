@@ -994,6 +994,117 @@ def bulk_attendance():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/student_management')
+def student_management():
+    """Display student management page for adding and removing students"""
+    # Get all students, sorted by last name, then first name
+    all_students = Student.query.order_by(Student.last_name, Student.first_name).all()
+    
+    # Group students by AS_Year for display
+    students_by_as_year = {}
+    for student in all_students:
+        as_year = student.as_year if student.as_year else 'Ungrouped'
+        if as_year not in students_by_as_year:
+            students_by_as_year[as_year] = []
+        students_by_as_year[as_year].append(student)
+    
+    # Sort AS_Year groups
+    def sort_as_year_key(year):
+        if year == 'Ungrouped':
+            return (1, year)
+        try:
+            numeric_part = ''.join(filter(str.isdigit, year))
+            if numeric_part:
+                return (0, int(numeric_part))
+        except:
+            pass
+        return (0, year)
+    
+    sorted_as_years = sorted(students_by_as_year.keys(), key=sort_as_year_key)
+    students_by_as_year_sorted = {year: students_by_as_year[year] for year in sorted_as_years}
+    
+    return render_template('student_management.html', 
+                         students_by_as_year=students_by_as_year_sorted,
+                         total_students=len(all_students))
+
+@app.route('/api/students', methods=['POST'])
+def add_student():
+    """Add a new student to the database"""
+    try:
+        data = request.json
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        student_id = data.get('student_id', '').strip() or None
+        email = data.get('email', '').strip() or None
+        as_year = data.get('as_year', '').strip() or None
+        aero_class = data.get('aero_class', '').strip() or None
+        aero_class_2 = data.get('aero_class_2', '').strip() or None
+        
+        if not first_name or not last_name:
+            return jsonify({'error': 'First name and last name are required'}), 400
+        
+        # Check if student already exists
+        existing = Student.query.filter_by(
+            first_name=first_name,
+            last_name=last_name
+        ).first()
+        
+        if existing:
+            return jsonify({'error': f'Student {first_name} {last_name} already exists'}), 400
+        
+        # Create new student
+        full_name = f"{first_name} {last_name}"
+        new_student = Student(
+            first_name=first_name,
+            last_name=last_name,
+            name=full_name,
+            student_id=student_id,
+            email=email,
+            as_year=as_year,
+            aero_class=aero_class,
+            aero_class_2=aero_class_2
+        )
+        
+        db.session.add(new_student)
+        db.session.commit()
+        
+        return jsonify({
+            'message': f'Student {full_name} added successfully',
+            'student': {
+                'id': new_student.id,
+                'first_name': new_student.first_name,
+                'last_name': new_student.last_name,
+                'name': new_student.name
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/students/<int:student_id>', methods=['DELETE'])
+def delete_student(student_id):
+    """Delete a student and all their attendance records"""
+    try:
+        student = Student.query.get_or_404(student_id)
+        student_name = student.name
+        
+        # Delete all attendance records for this student
+        Attendance.query.filter_by(student_id=student_id).delete()
+        
+        # Delete the student
+        db.session.delete(student)
+        db.session.commit()
+        
+        return jsonify({
+            'message': f'Student {student_name} and all attendance records deleted successfully',
+            'deleted': True
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/attendance/<int:attendance_id>', methods=['DELETE'])
 def delete_attendance(attendance_id):
     """Delete a specific attendance record"""

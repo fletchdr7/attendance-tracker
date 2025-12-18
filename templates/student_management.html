@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management - Attendance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .add-student-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #D0D0D0;
+            border-left: 4px solid #00308F;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .add-student-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .add-student-form .form-group {
+            margin-bottom: 0;
+        }
+        
+        .add-student-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #00308F;
+            font-size: 14px;
+        }
+        
+        .add-student-form input,
+        .add-student-form select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #D0D0D0;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .add-student-form button {
+            grid-column: 1 / -1;
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+        
+        .students-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #D0D0D0;
+            border-left: 4px solid #00308F;
+        }
+        
+        .students-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #E0E0E0;
+        }
+        
+        .students-header h2 {
+            margin: 0;
+            color: #00308F;
+        }
+        
+        .student-count {
+            background: #00308F;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .student-table th {
+            background: #F8F9FA;
+            color: #00308F;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #D0D0D0;
+        }
+        
+        .student-table td {
+            padding: 12px;
+            border-bottom: 1px solid #E8E8E8;
+        }
+        
+        .student-table tbody tr:hover {
+            background: #F8F9FA;
+        }
+        
+        .delete-student-btn {
+            background: #C8102E;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .delete-student-btn:hover {
+            background: #A00D26;
+            transform: scale(1.05);
+        }
+        
+        .delete-student-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #D4EDDA;
+            color: #155724;
+            border: 1px solid #C3E6CB;
+        }
+        
+        .message.error {
+            background: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+        }
+        
+        .message.show {
+            display: block;
+        }
+        
+        .as-year-group {
+            margin-bottom: 30px;
+        }
+        
+        .as-year-header {
+            font-weight: bold;
+            font-size: 18px;
+            color: #00308F;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #D0D0D0;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .add-student-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .add-student-form button {
+                grid-column: 1;
+            }
+            
+            .students-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .student-table {
+                font-size: 14px;
+            }
+            
+            .student-table th,
+            .student-table td {
+                padding: 8px;
+            }
+            
+            .delete-student-btn {
+                padding: 8px 10px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👥 Student Management</h1>
+        <p style="color: #666; margin-bottom: 20px; font-style: italic;">
+            Add new cadets or remove cadets who have left the program.
+        </p>
+        
+        <div class="actions">
+            <a href="/attendance_sign_in" class="btn btn-secondary">← Attendance Sign In</a>
+            <a href="/attendance_summary" class="btn btn-secondary">Attendance Summary</a>
+            <a href="/analytics_dashboard" class="btn btn-primary">Analytics Dashboard</a>
+        </div>
+        
+        <!-- Add Student Section -->
+        <div class="add-student-section">
+            <h2 style="margin-top: 0; color: #00308F;">Add New Student</h2>
+            <form id="addStudentForm" class="add-student-form">
+                <div class="form-group">
+                    <label for="newFirstName">First Name *</label>
+                    <input type="text" id="newFirstName" name="first_name" required autocomplete="given-name">
+                </div>
+                <div class="form-group">
+                    <label for="newLastName">Last Name *</label>
+                    <input type="text" id="newLastName" name="last_name" required autocomplete="family-name">
+                </div>
+                <div class="form-group">
+                    <label for="newStudentId">Student ID</label>
+                    <input type="text" id="newStudentId" name="student_id" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="newEmail">Email</label>
+                    <input type="email" id="newEmail" name="email" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="newAsYear">AS Year</label>
+                    <input type="text" id="newAsYear" name="as_year" placeholder="e.g., 100, 200, 250" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="newAeroClass">AERO Class</label>
+                    <input type="text" id="newAeroClass" name="aero_class" placeholder="e.g., AERO 1020" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="newAeroClass2">AERO Class 2</label>
+                    <input type="text" id="newAeroClass2" name="aero_class_2" placeholder="e.g., AERO 3020" autocomplete="off">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Add Student</button>
+                </div>
+            </form>
+            <div id="addMessage" class="message"></div>
+            <div id="addError" class="message"></div>
+        </div>
+        
+        <!-- Students List Section -->
+        <div class="students-section">
+            <div class="students-header">
+                <h2>All Students</h2>
+                <span class="student-count">{{ total_students }} Total</span>
+            </div>
+            
+            {% if students_by_as_year %}
+                {% for as_year, students in students_by_as_year.items() %}
+                <div class="as-year-group">
+                    <div class="as-year-header">
+                        AS Year: {{ as_year }} ({{ students|length }} cadet{{ 's' if students|length != 1 else '' }})
+                    </div>
+                    <table class="student-table">
+                        <thead>
+                            <tr>
+                                <th>Last Name</th>
+                                <th>First Name</th>
+                                <th>Student ID</th>
+                                <th>Email</th>
+                                <th>AS Year</th>
+                                <th>AERO Class</th>
+                                <th>AERO Class 2</th>
+                                <th style="width: 100px; text-align: center;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr id="student-row-{{ student.id }}">
+                                <td><strong>{{ student.last_name }}</strong></td>
+                                <td>{{ student.first_name }}</td>
+                                <td>{{ student.student_id or '-' }}</td>
+                                <td>{{ student.email or '-' }}</td>
+                                <td>{{ student.as_year or '-' }}</td>
+                                <td>{{ student.aero_class or '-' }}</td>
+                                <td>{{ student.aero_class_2 or '-' }}</td>
+                                <td style="text-align: center;">
+                                    <button class="delete-student-btn" 
+                                            data-student-id="{{ student.id }}"
+                                            data-student-name="{{ student.name }}"
+                                            title="Delete this student and all attendance records"
+                                            aria-label="Delete {{ student.name }}">
+                                        🗑️ Delete
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <p>No students found. Add your first student above.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        // Add Student Form
+        document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                first_name: formData.get('first_name').trim(),
+                last_name: formData.get('last_name').trim(),
+                student_id: formData.get('student_id').trim() || null,
+                email: formData.get('email').trim() || null,
+                as_year: formData.get('as_year').trim() || null,
+                aero_class: formData.get('aero_class').trim() || null,
+                aero_class_2: formData.get('aero_class_2').trim() || null
+            };
+            
+            const messageDiv = document.getElementById('addMessage');
+            const errorDiv = document.getElementById('addError');
+            
+            messageDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            
+            if (!data.first_name || !data.last_name) {
+                errorDiv.textContent = 'First name and last name are required';
+                errorDiv.className = 'message error show';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/students', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.textContent = result.message;
+                    messageDiv.className = 'message success show';
+                    e.target.reset();
+                    
+                    // Reload page after 1 second to show new student
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    errorDiv.textContent = result.error || 'Error adding student';
+                    errorDiv.className = 'message error show';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error: ' + error.message;
+                errorDiv.className = 'message error show';
+            }
+        });
+        
+        // Delete Student Functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const deleteButtons = document.querySelectorAll('.delete-student-btn');
+            
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', async function() {
+                    const studentId = this.getAttribute('data-student-id');
+                    const studentName = this.getAttribute('data-student-name');
+                    const row = document.getElementById(`student-row-${studentId}`);
+                    
+                    // Confirm deletion with warning about attendance records
+                    if (!confirm(`⚠️ WARNING: This will delete ${studentName} and ALL their attendance records.\n\nAre you sure you want to continue?`)) {
+                        return;
+                    }
+                    
+                    // Double confirmation
+                    if (!confirm(`Final confirmation: Delete ${studentName} permanently?`)) {
+                        return;
+                    }
+                    
+                    // Disable button and show deleting state
+                    this.disabled = true;
+                    this.textContent = '⏳ Deleting...';
+                    if (row) {
+                        row.style.opacity = '0.5';
+                    }
+                    
+                    try {
+                        const response = await fetch(`/api/students/${studentId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            // Remove the row with animation
+                            if (row) {
+                                row.style.transition = 'opacity 0.3s, transform 0.3s';
+                                row.style.opacity = '0';
+                                row.style.transform = 'translateX(-20px)';
+                                
+                                setTimeout(() => {
+                                    row.remove();
+                                    // Reload page to update counts
+                                    window.location.reload();
+                                }, 300);
+                            } else {
+                                window.location.reload();
+                            }
+                        } else {
+                            alert(`Error: ${data.error || 'Failed to delete student'}`);
+                            this.disabled = false;
+                            this.textContent = '🗑️ Delete';
+                            if (row) {
+                                row.style.opacity = '1';
+                            }
+                        }
+                    } catch (error) {
+                        alert(`Error: ${error.message}`);
+                        this.disabled = false;
+                        this.textContent = '🗑️ Delete';
+                        if (row) {
+                            row.style.opacity = '1';
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
