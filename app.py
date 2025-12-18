@@ -1086,7 +1086,10 @@ def add_student():
 def delete_student(student_id):
     """Delete a student and all their attendance records"""
     try:
-        student = Student.query.get_or_404(student_id)
+        student = Student.query.get(student_id)
+        if not student:
+            return jsonify({'error': f'Student with ID {student_id} not found'}), 404
+        
         student_name = student.name
         
         # Delete all attendance records for this student
