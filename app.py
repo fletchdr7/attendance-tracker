@@ -401,6 +401,7 @@ def attendance_summary():
             attendance_by_category[category][date_key] = []
         
         attendance_by_category[category][date_key].append({
+            'attendance_id': attendance.id,
             'student_name': student.name,
             'student_first': student.first_name,
             'student_last': student.last_name,
@@ -989,6 +990,31 @@ def bulk_attendance():
             'errors': errors if errors else None
         }), 201
         
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance/<int:attendance_id>', methods=['DELETE'])
+def delete_attendance(attendance_id):
+    """Delete a specific attendance record"""
+    try:
+        attendance = Attendance.query.get_or_404(attendance_id)
+        
+        # Get student and class info for the response message
+        student = Student.query.get(attendance.student_id)
+        class_record = Class.query.get(attendance.class_id)
+        
+        student_name = student.name if student else 'Unknown'
+        class_name = class_record.name if class_record else 'Unknown'
+        
+        # Delete the attendance record
+        db.session.delete(attendance)
+        db.session.commit()
+        
+        return jsonify({
+            'message': f'Attendance record deleted for {student_name} in {class_name}',
+            'deleted': True
+        }), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500

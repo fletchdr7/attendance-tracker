@@ -129,6 +129,41 @@
             display: none;
         }
         
+        .delete-btn {
+            background: #C8102E;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        
+        .delete-btn:hover {
+            background: #A00D26;
+            transform: scale(1.1);
+        }
+        
+        .delete-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .delete-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .attendance-table tr {
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .attendance-table tr.deleting {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
         /* Mobile optimizations */
         @media (max-width: 768px) {
             body {
@@ -202,6 +237,11 @@
             .attendance-table th,
             .attendance-table td {
                 padding: 8px;
+            }
+            
+            .delete-btn {
+                padding: 8px 10px;
+                font-size: 18px;
             }
         }
         
@@ -305,15 +345,26 @@
                                         <th>Class</th>
                                         <th>Class Code</th>
                                         <th>Time</th>
+                                        <th style="width: 80px; text-align: center;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for record in date_records %}
-                                    <tr>
+                                    <tr id="attendance-row-{{ record.attendance_id }}">
                                         <td><strong>{{ record.student_name }}</strong></td>
                                         <td>{{ record.class_name }}</td>
                                         <td><code style="background: #F0F0F0; padding: 4px 8px; border-radius: 4px;">{{ record.class_code }}</code></td>
                                         <td class="time-cell">{{ record.time_str }}</td>
+                                        <td style="text-align: center;">
+                                            <button class="delete-btn" 
+                                                    data-attendance-id="{{ record.attendance_id }}"
+                                                    data-student-name="{{ record.student_name }}"
+                                                    data-class-name="{{ record.class_name }}"
+                                                    title="Delete this attendance record"
+                                                    aria-label="Delete attendance for {{ record.student_name }}">
+                                                🗑️
+                                            </button>
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -483,6 +534,75 @@
                 errorDiv.textContent = 'Error: ' + error.message;
                 errorDiv.style.display = 'block';
             }
+        });
+        
+        // Delete attendance record functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', async function() {
+                    const attendanceId = this.getAttribute('data-attendance-id');
+                    const studentName = this.getAttribute('data-student-name');
+                    const className = this.getAttribute('data-class-name');
+                    const row = document.getElementById(`attendance-row-${attendanceId}`);
+                    
+                    // Confirm deletion
+                    if (!confirm(`Are you sure you want to delete the attendance record for ${studentName} in ${className}?`)) {
+                        return;
+                    }
+                    
+                    // Disable button and show deleting state
+                    this.disabled = true;
+                    this.textContent = '⏳';
+                    if (row) {
+                        row.classList.add('deleting');
+                    }
+                    
+                    try {
+                        const response = await fetch(`/api/attendance/${attendanceId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            // Remove the row with animation
+                            if (row) {
+                                row.style.transition = 'opacity 0.3s, transform 0.3s';
+                                row.style.opacity = '0';
+                                row.style.transform = 'translateX(-20px)';
+                                
+                                setTimeout(() => {
+                                    row.remove();
+                                    
+                                    // Reload page to update counts and refresh display
+                                    window.location.reload();
+                                }, 300);
+                            } else {
+                                window.location.reload();
+                            }
+                        } else {
+                            alert(`Error: ${data.error || 'Failed to delete attendance record'}`);
+                            this.disabled = false;
+                            this.textContent = '🗑️';
+                            if (row) {
+                                row.classList.remove('deleting');
+                            }
+                        }
+                    } catch (error) {
+                        alert(`Error: ${error.message}`);
+                        this.disabled = false;
+                        this.textContent = '🗑️';
+                        if (row) {
+                            row.classList.remove('deleting');
+                        }
+                    }
+                });
+            });
         });
     </script>
 </body>
