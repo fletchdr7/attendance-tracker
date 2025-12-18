@@ -139,31 +139,183 @@
             font-size: 14px;
         }
         
+        .select-all-section {
+            padding: 15px;
+            background: #E8F4F8;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border: 1px solid #D0D0D0;
+        }
+        
+        .select-all-section label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 500;
+            color: #00308F;
+            margin: 0;
+        }
+        
+        .select-all-section input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        
+        .student-group-header {
+            font-weight: bold;
+            font-size: 16px;
+            color: #00308F;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #D0D0D0;
+        }
+        
         /* Mobile optimizations */
         @media (max-width: 768px) {
-            .container {
+            body {
                 padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+                border-radius: 6px;
+            }
+            
+            h1 {
+                font-size: 24px;
+                margin-bottom: 15px;
+            }
+            
+            .actions {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            
+            .actions .btn {
+                width: 100%;
+                margin: 0;
+                padding: 14px 20px;
+                font-size: 16px;
+                text-align: center;
+            }
+            
+            .attendance-form {
+                margin-top: 20px;
+            }
+            
+            .form-group {
+                margin-bottom: 18px;
+            }
+            
+            .form-group label {
+                font-size: 16px;
+                margin-bottom: 8px;
             }
             
             .form-group select,
             .form-group input {
                 max-width: 100%;
                 font-size: 18px;
-                padding: 15px;
+                padding: 16px;
+                width: 100%;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
             }
             
             .student-checklist {
-                max-height: 500px;
-                padding: 15px;
+                max-height: 60vh;
+                padding: 12px;
+                margin-top: 20px;
+                border-radius: 6px;
+            }
+            
+            .student-checklist-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .student-checklist-header h3 {
+                font-size: 18px;
+                margin-bottom: 5px;
+            }
+            
+            .select-all-section {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            
+            .select-all-section label {
+                font-size: 16px;
+            }
+            
+            .select-all-section input[type="checkbox"] {
+                width: 24px;
+                height: 24px;
             }
             
             .student-item {
-                padding: 15px;
+                padding: 14px;
+                margin-bottom: 6px;
             }
             
             .student-item input[type="checkbox"] {
                 width: 24px;
                 height: 24px;
+                margin-right: 12px;
+            }
+            
+            .student-item label {
+                font-size: 16px;
+            }
+            
+            .student-group-header {
+                font-size: 15px;
+                margin-top: 15px;
+                margin-bottom: 8px;
+            }
+            
+            .submit-section {
+                margin-top: 20px;
+                padding: 15px;
+            }
+            
+            .submit-section button {
+                width: 100%;
+                padding: 16px;
+                font-size: 18px;
+            }
+            
+            .message {
+                font-size: 15px;
+                padding: 12px;
+            }
+        }
+        
+        /* Extra small devices */
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                padding: 12px;
+            }
+            
+            h1 {
+                font-size: 22px;
+            }
+            
+            .form-group select,
+            .form-group input {
+                font-size: 16px;
+                padding: 14px;
             }
         }
     </style>
@@ -171,10 +323,10 @@
 <body>
     <div class="container">
         <h1>📅 Attendance Sign In</h1>
-        <p style="color: #666; margin-bottom: 20px;">
+        <p style="color: #666; margin-bottom: 20px; font-size: 15px; line-height: 1.5;">
             Select category, class (if applicable), and date, then check off students who are present.
         </p>
-        <div class="actions desktop-view">
+        <div class="actions">
             <a href="/attendance_summary" class="btn btn-secondary">← Attendance Summary</a>
             <a href="/analytics_dashboard" class="btn btn-primary">Analytics Dashboard</a>
         </div>
@@ -214,9 +366,9 @@
                     <h3>Select Students Present</h3>
                     <span class="selected-count" id="selectedCount">0 selected</span>
                 </div>
-                <div class="select-all-section" style="padding: 15px; background: #E8F4F8; border-radius: 4px; margin-bottom: 15px; border: 1px solid #D0D0D0;">
-                    <label style="display: flex; align-items: center; cursor: pointer; font-weight: 500; color: #00308F; margin: 0;">
-                        <input type="checkbox" id="selectAllCheckbox" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                <div class="select-all-section">
+                    <label>
+                        <input type="checkbox" id="selectAllCheckbox">
                         <span>Select All Students</span>
                     </label>
                 </div>
