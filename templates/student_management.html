@@ -335,22 +335,26 @@
             asYearSelect.addEventListener('change', function() {
                 if (this.value === 'AS250') {
                     aeroClass2Group.style.display = 'block';
+                    aeroClass2Select.disabled = false;
+                    aeroClass2Select.removeAttribute('required');
                 } else {
                     aeroClass2Group.style.display = 'none';
                     aeroClass2Select.value = ''; // Clear selection when hidden
+                    aeroClass2Select.disabled = true; // Disable when hidden
+                    aeroClass2Select.removeAttribute('required');
                 }
             });
+            
+            // Initialize on page load
+            if (asYearSelect.value !== 'AS250') {
+                aeroClass2Group.style.display = 'none';
+                aeroClass2Select.disabled = true;
+            }
         });
         
         // Add Student Form
         document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const asYearValue = formData.get('as_year');
-            const aeroClassValue = formData.get('aero_class');
-            const aeroClass2Value = formData.get('aero_class_2');
-            const aeroClass2Group = document.getElementById('aeroClass2Group');
             
             // Helper function to clean form values
             const cleanValue = (value) => {
@@ -359,9 +363,15 @@
                 return trimmed === '' ? null : trimmed;
             };
             
-            // Only include aero_class_2 if the field is visible (AS250 selected)
+            const formData = new FormData(e.target);
+            const asYearValue = formData.get('as_year');
+            const aeroClassValue = formData.get('aero_class');
+            const aeroClass2Select = document.getElementById('newAeroClass2');
+            
+            // Only get aero_class_2 if the field is enabled (AS250 selected)
             let aeroClass2Final = null;
-            if (aeroClass2Group && aeroClass2Group.style.display !== 'none') {
+            if (aeroClass2Select && !aeroClass2Select.disabled) {
+                const aeroClass2Value = formData.get('aero_class_2');
                 aeroClass2Final = cleanValue(aeroClass2Value);
             }
             
@@ -373,6 +383,9 @@
                 aero_class: cleanValue(aeroClassValue),
                 aero_class_2: aeroClass2Final
             };
+            
+            // Debug logging (can be removed later)
+            console.log('Form submission data:', data);
             
             const messageDiv = document.getElementById('addMessage');
             const errorDiv = document.getElementById('addError');
@@ -395,23 +408,41 @@
                     body: JSON.stringify(data)
                 });
                 
-                const result = await response.json();
+                let result;
+                try {
+                    result = await response.json();
+                } catch (jsonError) {
+                    // If response is not JSON, get text
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    errorDiv.textContent = `Server error: ${response.status} ${response.statusText}`;
+                    errorDiv.className = 'message error show';
+                    return;
+                }
                 
                 if (response.ok) {
                     messageDiv.textContent = result.message;
                     messageDiv.className = 'message success show';
                     e.target.reset();
                     
+                    // Reset AERO Class 2 field state
+                    if (aeroClass2Select) {
+                        aeroClass2Select.disabled = true;
+                        document.getElementById('aeroClass2Group').style.display = 'none';
+                    }
+                    
                     // Reload page after 1 second to show new student
                     setTimeout(() => {
                         window.location.reload();
                     }, 1000);
                 } else {
-                    errorDiv.textContent = result.error || 'Error adding student';
+                    console.error('Error response:', result);
+                    errorDiv.textContent = result.error || `Error adding student: ${response.status} ${response.statusText}`;
                     errorDiv.className = 'message error show';
                 }
             } catch (error) {
-                errorDiv.textContent = 'Error: ' + error.message;
+                console.error('Network error:', error);
+                errorDiv.textContent = 'Network Error: ' + error.message;
                 errorDiv.className = 'message error show';
             }
         });
