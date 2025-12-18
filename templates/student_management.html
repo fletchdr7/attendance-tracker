@@ -224,24 +224,39 @@
                     <input type="text" id="newLastName" name="last_name" required autocomplete="family-name">
                 </div>
                 <div class="form-group">
-                    <label for="newStudentId">Student ID</label>
-                    <input type="text" id="newStudentId" name="student_id" autocomplete="off">
-                </div>
-                <div class="form-group">
                     <label for="newEmail">Email</label>
                     <input type="email" id="newEmail" name="email" autocomplete="email">
                 </div>
                 <div class="form-group">
                     <label for="newAsYear">AS Year</label>
-                    <input type="text" id="newAsYear" name="as_year" placeholder="e.g., 100, 200, 250" autocomplete="off">
+                    <select id="newAsYear" name="as_year">
+                        <option value="">-- Select AS Year --</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="250">250</option>
+                        <option value="300">300</option>
+                        <option value="400">400</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="newAeroClass">AERO Class</label>
-                    <input type="text" id="newAeroClass" name="aero_class" placeholder="e.g., AERO 1020" autocomplete="off">
+                    <select id="newAeroClass" name="aero_class">
+                        <option value="">-- Select AERO Class --</option>
+                        <option value="AERO 1020">AERO 1020 - Heritage and Values of the USAF II</option>
+                        <option value="AERO 2020">AERO 2020 - Team and Leadership Fundamentals II</option>
+                        <option value="AERO 3020">AERO 3020 - Leading People and Effective Communication II</option>
+                        <option value="AERO 4020">AERO 4020 - National Security/Commissioning Preparation II</option>
+                    </select>
                 </div>
-                <div class="form-group">
-                    <label for="newAeroClass2">AERO Class 2</label>
-                    <input type="text" id="newAeroClass2" name="aero_class_2" placeholder="e.g., AERO 3020" autocomplete="off">
+                <div class="form-group" id="aeroClass2Group" style="display: none;">
+                    <label for="newAeroClass2">AERO Class 2 <span style="font-size: 12px; color: #666;">(Optional - AS250 only)</span></label>
+                    <select id="newAeroClass2" name="aero_class_2">
+                        <option value="">-- Select AERO Class 2 (Optional) --</option>
+                        <option value="AERO 1020">AERO 1020 - Heritage and Values of the USAF II</option>
+                        <option value="AERO 2020">AERO 2020 - Team and Leadership Fundamentals II</option>
+                        <option value="AERO 3020">AERO 3020 - Leading People and Effective Communication II</option>
+                        <option value="AERO 4020">AERO 4020 - National Security/Commissioning Preparation II</option>
+                    </select>
                 </div>
                 <div>
                     <button type="submit" class="btn btn-primary">Add Student</button>
@@ -311,6 +326,22 @@
     </div>
     
     <script>
+        // Handle AS Year change to show/hide AERO Class 2
+        document.addEventListener('DOMContentLoaded', () => {
+            const asYearSelect = document.getElementById('newAsYear');
+            const aeroClass2Group = document.getElementById('aeroClass2Group');
+            const aeroClass2Select = document.getElementById('newAeroClass2');
+            
+            asYearSelect.addEventListener('change', function() {
+                if (this.value === '250') {
+                    aeroClass2Group.style.display = 'block';
+                } else {
+                    aeroClass2Group.style.display = 'none';
+                    aeroClass2Select.value = ''; // Clear selection when hidden
+                }
+            });
+        });
+        
         // Add Student Form
         document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -319,11 +350,10 @@
             const data = {
                 first_name: formData.get('first_name').trim(),
                 last_name: formData.get('last_name').trim(),
-                student_id: formData.get('student_id').trim() || null,
                 email: formData.get('email').trim() || null,
-                as_year: formData.get('as_year').trim() || null,
-                aero_class: formData.get('aero_class').trim() || null,
-                aero_class_2: formData.get('aero_class_2').trim() || null
+                as_year: formData.get('as_year') || null,
+                aero_class: formData.get('aero_class') || null,
+                aero_class_2: formData.get('aero_class_2') || null
             };
             
             const messageDiv = document.getElementById('addMessage');
