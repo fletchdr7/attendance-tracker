@@ -280,8 +280,6 @@
                             <tr>
                                 <th>Last Name</th>
                                 <th>First Name</th>
-                                <th>Student ID</th>
-                                <th>Email</th>
                                 <th>AS Year</th>
                                 <th>AERO Class</th>
                                 <th>AERO Class 2</th>
@@ -293,8 +291,6 @@
                             <tr id="student-row-{{ student.id }}">
                                 <td><strong>{{ student.last_name }}</strong></td>
                                 <td>{{ student.first_name }}</td>
-                                <td>{{ student.student_id or '-' }}</td>
-                                <td>{{ student.email or '-' }}</td>
                                 <td>{{ student.as_year or '-' }}</td>
                                 <td>{{ student.aero_class or '-' }}</td>
                                 <td>{{ student.aero_class_2 or '-' }}</td>
