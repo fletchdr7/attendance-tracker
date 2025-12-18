@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Attendance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .dashboard-header {
+            margin-bottom: 30px;
+        }
+        .dashboard-header h1 {
+            margin-bottom: 10px;
+        }
+        .dashboard-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .dashboard-actions .btn {
+            margin: 0;
+        }
+        @media (max-width: 768px) {
+            .dashboard-actions {
+                flex-direction: column;
+            }
+            .dashboard-actions .btn {
+                width: 100%;
+            }
+        }
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #F8F9FA;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #D0D0D0;
+            border-left: 4px solid #00308F;
+            text-align: center;
+        }
+        .stat-card h3 {
+            color: #00308F;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: #00308F;
+        }
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+        .attendance-table th {
+            background: #00308F;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .attendance-table td {
+            padding: 12px;
+            border-bottom: 1px solid #E0E0E0;
+        }
+        .attendance-table tr:hover {
+            background: #F8F9FA;
+        }
+        .percentage-cell {
+            font-weight: 600;
+            text-align: center;
+        }
+        .percentage-high {
+            color: #2E7D32;
+        }
+        .percentage-medium {
+            color: #F57C00;
+        }
+        .percentage-low {
+            color: #C8102E;
+        }
+        .name-cell {
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>👔 Analytics Dashboard</h1>
+            <p style="color: #666; margin: 10px 0 0 0; font-style: italic;">
+                Attendance analysis dashboard for leadership and cadre to assess cadet attendance and identify disciplinary needs.
+            </p>
+            <div class="dashboard-actions">
+                <a href="/attendance_summary" class="btn btn-secondary">← Attendance Summary</a>
+                <a href="/attendance_sign_in" class="btn btn-primary">Attendance Sign In</a>
+                <button id="exportBtn" class="btn btn-primary">Export to CSV</button>
+            </div>
+        </div>
+        
+        <div class="stats-summary">
+            <div class="stat-card">
+                <h3>Total Cadets</h3>
+                <div class="stat-value">{{ students|length }}</div>
+            </div>
+            {% for category in categories %}
+            <div class="stat-card">
+                <h3>{{ category }}</h3>
+                <div class="stat-value">
+                    {% if category == 'Physical Training' %}
+                        {% if sessions_offered[category] > 0 %}
+                            {{ sessions_offered[category] }}<br>
+                            <span style="font-size: 14px; font-weight: normal;">Sessions Offered</span>
+                            <br>
+                            <span style="font-size: 12px; color: #666;">(2 of 3 per week required)</span>
+                        {% else %}
+                            0<br>
+                            <span style="font-size: 14px; font-weight: normal;">Sessions Offered</span>
+                        {% endif %}
+                    {% else %}
+                        {% if category in sessions_offered %}
+                            {{ sessions_offered[category] }}<br>
+                            <span style="font-size: 14px; font-weight: normal;">Sessions Offered</span>
+                        {% else %}
+                            0<br>
+                            <span style="font-size: 14px; font-weight: normal;">Sessions Offered</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <h2>Cadet Attendance by Category</h2>
+        
+        <div style="overflow-x: auto;">
+            {% for as_year, students_in_year in students_by_as_year.items() %}
+            <div style="margin-bottom: 40px;">
+                <h3 style="color: #00308F; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #D0D0D0;">
+                    AS Year: {{ as_year }} ({{ students_in_year|length }} cadet{{ 's' if students_in_year|length != 1 else '' }})
+                </h3>
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Last Name</th>
+                            <th>First Name</th>
+                            {% for category in categories %}
+                            <th class="percentage-cell">{{ category }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students_in_year %}
+                        <tr>
+                            <td class="name-cell">{{ student.last_name }}</td>
+                            <td class="name-cell">{{ student.first_name }}</td>
+                            {% for category in categories %}
+                            <td class="percentage-cell 
+                                {% if student.categories[category].percentage >= 80 %}percentage-high
+                                {% elif student.categories[category].percentage >= 60 %}percentage-medium
+                                {% else %}percentage-low{% endif %}">
+                                {{ student.categories[category].percentage }}%<br>
+                                <small style="font-weight: normal; color: #666;">
+                                    {% if category == 'Physical Training' %}
+                                        ({{ student.categories[category].attended }}/{{ student.categories[category].total }} weeks)
+                                        <br>
+                                        <span style="font-size: 10px;">{{ student.categories[category].total_sessions_attended }}/{{ student.categories[category].total_sessions_offered }} sessions</span>
+                                    {% elif category == 'Aerospace Class' %}
+                                        ({{ student.categories[category].attended }}/{{ student.categories[category].total }})
+                                        {% if student.categories[category].enrolled_classes > 0 %}
+                                            <br>
+                                            <span style="font-size: 10px;">{{ student.categories[category].enrolled_classes }} class{{ 'es' if student.categories[category].enrolled_classes != 1 else '' }}</span>
+                                        {% else %}
+                                            <br>
+                                            <span style="font-size: 10px; color: #999;">Not enrolled</span>
+                                        {% endif %}
+                                    {% else %}
+                                        ({{ student.categories[category].attended }}/{{ student.categories[category].total }})
+                                    {% endif %}
+                                </small>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <script>
+        // Export to CSV functionality
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            let csv = [];
+            
+            // Get headers from first table
+            const firstTable = document.querySelector('.attendance-table');
+            const headers = ['AS Year', 'Last Name', 'First Name'];
+            firstTable.querySelectorAll('thead th').forEach((th, index) => {
+                if (index >= 2) {  // Skip Last Name and First Name, add category headers
+                    headers.push(th.textContent.trim());
+                }
+            });
+            csv.push(headers.join(','));
+            
+            // Get rows from all tables (grouped by AS Year)
+            const tables = document.querySelectorAll('.attendance-table');
+            tables.forEach(table => {
+                // Get AS Year from the preceding h3
+                const h3 = table.previousElementSibling;
+                let asYear = 'Ungrouped';
+                if (h3 && h3.tagName === 'H3') {
+                    const match = h3.textContent.match(/AS Year: (.+?) \(/);
+                    if (match) {
+                        asYear = match[1];
+                    }
+                }
+                
+                // Get rows from this table
+                table.querySelectorAll('tbody tr').forEach(tr => {
+                    const row = [asYear];  // Start with AS Year
+                    tr.querySelectorAll('td').forEach((td, index) => {
+                        if (index === 0 || index === 1) {
+                            // Name columns
+                            row.push(td.textContent.trim());
+                        } else {
+                            // Percentage columns - get just the percentage number
+                            const text = td.textContent.trim();
+                            const percentage = text.split('%')[0];
+                            row.push(percentage);
+                        }
+                    });
+                    csv.push(row.join(','));
+                });
+            });
+            
+            // Create download
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'cadet_attendance.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan QR Code - Student</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Scan QR Code for Attendance</h1>
+        
+        <div class="form">
+            <div class="form-group">
+                <label for="first_name">First Name:</label>
+                <input type="text" id="first_name" required autocomplete="given-name">
+            </div>
+            
+            <div class="form-group">
+                <label for="last_name">Last Name:</label>
+                <input type="text" id="last_name" required autocomplete="family-name">
+            </div>
+            
+            <div class="form-group">
+                <label>Scan QR Code:</label>
+                <video id="video" width="100%" style="max-width: 500px; border: 2px solid #333; border-radius: 8px;" playsinline></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+            </div>
+            
+            <button id="startScan" class="btn btn-primary">Start Camera</button>
+            <button id="stopScan" class="btn btn-secondary" style="display: none;">Stop Camera</button>
+            <div id="status" style="margin-top: 10px; color: #666;"></div>
+        </div>
+        
+        <div id="result" style="display: none; margin-top: 20px; padding: 15px; border-radius: 8px;"></div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script>
+        let stream = null;
+        let scanning = false;
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statusDiv = document.getElementById('status');
+        
+        document.getElementById('startScan').addEventListener('click', async () => {
+            try {
+                // Request camera access
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+                video.setAttribute('playsinline', true);
+                
+                // Wait for video to be ready
+                video.addEventListener('loadedmetadata', () => {
+                    video.play().then(() => {
+                        statusDiv.textContent = 'Camera ready. Point at QR code...';
+                        document.getElementById('startScan').style.display = 'none';
+                        document.getElementById('stopScan').style.display = 'inline-block';
+                        scanning = true;
+                        scanQR();
+                    }).catch(err => {
+                        statusDiv.textContent = 'Error playing video: ' + err.message;
+                    });
+                }, { once: true });
+                
+            } catch (err) {
+                statusDiv.textContent = 'Error accessing camera: ' + err.message;
+                alert('Error accessing camera: ' + err.message);
+            }
+        });
+        
+        document.getElementById('stopScan').addEventListener('click', () => {
+            scanning = false;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.srcObject = null;
+            document.getElementById('startScan').style.display = 'inline-block';
+            document.getElementById('stopScan').style.display = 'none';
+            statusDiv.textContent = '';
+        });
+        
+        function scanQR() {
+            if (!scanning || !stream) return;
+            
+            // Check if video is ready and has valid dimensions
+            if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    scanning = false; // Stop scanning while processing
+                    handleQRCode(code.data);
+                } else {
+                    requestAnimationFrame(scanQR);
+                }
+            } else {
+                // Video not ready yet, try again soon
+                setTimeout(scanQR, 100);
+            }
+        }
+        
+        async function handleQRCode(qrData) {
+            const firstName = document.getElementById('first_name').value.trim();
+            const lastName = document.getElementById('last_name').value.trim();
+            
+            if (!firstName || !lastName) {
+                alert('Please enter your First Name and Last Name first');
+                scanning = true;
+                requestAnimationFrame(scanQR);
+                return;
+            }
+            
+            statusDiv.textContent = 'Processing...';
+            
+            try {
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        qr_data: qrData,
+                        first_name: firstName,
+                        last_name: lastName
+                    })
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('result');
+                resultDiv.style.display = 'block';
+                
+                if (data.error) {
+                    resultDiv.style.backgroundColor = '#fee';
+                    resultDiv.style.color = '#c00';
+                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.error}`;
+                    statusDiv.textContent = 'Error: ' + data.error;
+                    // Resume scanning after error
+                    scanning = true;
+                    requestAnimationFrame(scanQR);
+                } else {
+                    resultDiv.style.backgroundColor = '#efe';
+                    resultDiv.style.color = '#060';
+                    resultDiv.innerHTML = `
+                        <strong>Success!</strong><br>
+                        ${data.message}<br>
+                        <small>Time: ${new Date(data.timestamp).toLocaleString()}</small>
+                    `;
+                    statusDiv.textContent = 'Attendance recorded successfully!';
+                    
+                    // Stop scanning after success
+                    document.getElementById('stopScan').click();
+                }
+                
+                setTimeout(() => {
+                    resultDiv.style.display = 'none';
+                }, 5000);
+            } catch (err) {
+                statusDiv.textContent = 'Network error: ' + err.message;
+                resultDiv.style.display = 'block';
+                resultDiv.style.backgroundColor = '#fee';
+                resultDiv.style.color = '#c00';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${err.message}`;
+                // Resume scanning after error
+                scanning = true;
+                requestAnimationFrame(scanQR);
+            }
+        }
+    </script>
+</body>
+</html>

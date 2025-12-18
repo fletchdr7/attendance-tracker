@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .attend-form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        @media (max-width: 768px) {
+            .attend-form {
+                max-width: 100%;
+            }
+            .form-group input {
+                font-size: 18px;
+                padding: 15px;
+            }
+            .btn {
+                padding: 15px 20px;
+                font-size: 18px;
+            }
+        }
+        .error-message {
+            background: #FEE;
+            color: #C8102E;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #C8102E;
+            border: 1px solid #FCC;
+        }
+        .success-message {
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2E7D32;
+            border: 1px solid #C8E6C9;
+        }
+        .class-info {
+            background: #E8F0F8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #00308F;
+            border: 1px solid #D0E4F4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Mark Attendance</h1>
+        
+        {% if error %}
+        <div class="error-message">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+        
+        {% if class_name %}
+        <div class="class-info">
+            <p><strong>Class:</strong> {{ class_name }}</p>
+            <p><strong>Code:</strong> {{ class_code }}</p>
+            {% if session_date %}
+            <p><strong>Session Date:</strong> <span id="sessionDateDisplay"></span></p>
+            <script>
+                const dateStr = '{{ session_date }}';
+                if (dateStr) {
+                    // Parse date string directly to avoid timezone issues
+                    // Format: YYYY-MM-DD
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    const date = new Date(year, month - 1, day); // month is 0-indexed
+                    document.getElementById('sessionDateDisplay').textContent = date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                }
+            </script>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <form id="attendForm" class="attend-form">
+            <input type="hidden" id="class_code" value="{{ class_code }}">
+            <input type="hidden" id="session_date" value="{{ session_date or '' }}">
+            
+            <div class="form-group">
+                <label for="first_name">First Name:</label>
+                <input type="text" id="first_name" name="first_name" required autocomplete="given-name">
+            </div>
+            
+            <div class="form-group">
+                <label for="last_name">Last Name:</label>
+                <input type="text" id="last_name" name="last_name" required autocomplete="family-name">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Attendance</button>
+        </form>
+        
+        <div id="result" style="display: none; margin-top: 20px;"></div>
+    </div>
+    
+    <script>
+        document.getElementById('attendForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('first_name').value.trim();
+            const lastName = document.getElementById('last_name').value.trim();
+            const classCode = document.getElementById('class_code').value;
+            
+            if (!firstName || !lastName) {
+                alert('Please enter both First Name and Last Name');
+                return;
+            }
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+            
+            try {
+                // Build QR data with date if provided
+                const sessionDate = document.getElementById('session_date').value;
+                let qrData;
+                if (sessionDate) {
+                    // Use URL format with date
+                    const baseUrl = window.location.origin;
+                    qrData = `${baseUrl}/attend?code=${classCode}&date=${sessionDate}`;
+                } else {
+                    // Use legacy format for backward compatibility
+                    qrData = `ATTENDANCE:${classCode}:${new Date().toISOString()}`;
+                }
+                
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        qr_data: qrData,
+                        first_name: firstName,
+                        last_name: lastName
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.style.display = 'block';
+                
+                if (data.error) {
+                    resultDiv.className = 'error-message';
+                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.error}`;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Attendance';
+                } else {
+                    resultDiv.className = 'success-message';
+                    resultDiv.innerHTML = `
+                        <strong>Success!</strong><br>
+                        ${data.message}<br>
+                        <small>Time: ${new Date(data.timestamp).toLocaleString()}</small>
+                    `;
+                    
+                    // Disable form after success
+                    document.getElementById('attendForm').style.display = 'none';
+                    
+                    // Show message for 5 seconds, then allow resubmission
+                    setTimeout(() => {
+                        resultDiv.style.display = 'none';
+                        document.getElementById('attendForm').style.display = 'block';
+                        document.getElementById('attendForm').reset();
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Attendance';
+                    }, 5000);
+                }
+            } catch (err) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'error-message';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${err.message}`;
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Attendance';
+            }
+        });
+    </script>
+</body>
+</html>
+

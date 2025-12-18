@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate QR Code</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Generate QR Code for Class</h1>
+        <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
+        
+        <form id="qrForm" class="form">
+            <div class="form-group">
+                <label for="class_name">Class Name:</label>
+                <input type="text" id="class_name" name="class_name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="class_code">Class Code (optional, auto-generated if empty):</label>
+                <input type="text" id="class_code" name="class_code" maxlength="10">
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Generate QR Code</button>
+        </form>
+        
+        <div id="qrResult" style="display: none;">
+            <h2>QR Code Generated!</h2>
+            <div id="qrImage"></div>
+            <p><strong>Class:</strong> <span id="className"></span></p>
+            <p><strong>Code:</strong> <span id="classCode"></span></p>
+            <p>Students can scan this QR code to mark attendance.</p>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('qrForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            const response = await fetch('/generate_qr', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            
+            document.getElementById('qrImage').innerHTML = `<img src="${data.qr_code}" alt="QR Code" style="max-width: 400px;">`;
+            document.getElementById('className').textContent = data.class_name;
+            document.getElementById('classCode').textContent = data.class_code;
+            document.getElementById('qrResult').style.display = 'block';
+        });
+    </script>
+</body>
+</html>

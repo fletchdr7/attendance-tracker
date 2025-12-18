@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Summary - Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .category-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #D0D0D0;
+            border-left: 4px solid #00308F;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #E0E0E0;
+        }
+        .category-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #00308F;
+            margin: 0;
+        }
+        .category-count {
+            background: #00308F;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .date-group {
+            margin-bottom: 30px;
+            border: 1px solid #E0E0E0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .date-header {
+            background: #F8F9FA;
+            padding: 12px 20px;
+            border-bottom: 2px solid #D0D0D0;
+            font-weight: 600;
+            color: #00308F;
+            font-size: 16px;
+        }
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .attendance-table th {
+            background: #F8F9FA;
+            color: #00308F;
+            padding: 10px 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #D0D0D0;
+        }
+        .attendance-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #E8E8E8;
+        }
+        .attendance-table tbody tr:hover {
+            background: #F8F9FA;
+        }
+        .time-cell {
+            color: #999;
+            font-size: 13px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+        }
+        .quick-add-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #D0D0D0;
+            border-left: 4px solid #5D6D7E;
+        }
+        .quick-add-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+        @media (max-width: 1200px) {
+            .quick-add-form {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .quick-add-form input {
+            padding: 10px;
+            border: 2px solid #D0D0D0;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .quick-add-form button {
+            padding: 10px 20px;
+            white-space: nowrap;
+        }
+        .success-message {
+            background: #D4EDDA;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        .error-message {
+            background: #F8D7DA;
+            color: #721C24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Attendance Summary</h1>
+        <p style="color: #666; margin-bottom: 20px; font-style: italic;">
+            Desktop-optimized view for attendance analysis and disciplinary review by leadership and cadre.
+        </p>
+        
+        <div class="actions">
+            <a href="/attendance_sign_in" class="btn btn-primary">Attendance Sign In</a>
+            <a href="/analytics_dashboard" class="btn btn-primary">Analytics Dashboard</a>
+        </div>
+        
+        <!-- Quick Add Attendance Section -->
+        <div class="quick-add-section">
+            <h2 style="margin-top: 0; color: #00308F;">Quick Add Attendance</h2>
+            <form id="quickAddForm" class="quick-add-form">
+                <div>
+                    <label for="firstName" style="display: block; margin-bottom: 5px; font-weight: 500;">First Name:</label>
+                    <input type="text" id="firstName" name="first_name" required autocomplete="given-name">
+                </div>
+                <div>
+                    <label for="lastName" style="display: block; margin-bottom: 5px; font-weight: 500;">Last Name:</label>
+                    <input type="text" id="lastName" name="last_name" required autocomplete="family-name">
+                </div>
+                <div>
+                    <label for="categorySelect" style="display: block; margin-bottom: 5px; font-weight: 500;">Category:</label>
+                    <select id="categorySelect" name="category" required style="width: 100%; padding: 10px; border: 2px solid #D0D0D0; border-radius: 4px; font-size: 16px;">
+                        <option value="">-- Select Category --</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="classSelectorDiv">
+                    <label for="classSelect" style="display: block; margin-bottom: 5px; font-weight: 500;">Class:</label>
+                    <select id="classSelect" name="class_id" style="width: 100%; padding: 10px; border: 2px solid #D0D0D0; border-radius: 4px; font-size: 16px;" disabled>
+                        <option value="">-- Select Category First --</option>
+                        {% for category, classes in classes_by_category.items() %}
+                            {% for class in classes %}
+                            <option value="{{ class.id }}" data-category="{{ class.category }}" style="display: none;">{{ class.name }} ({{ class.code }})</option>
+                            {% endfor %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="attendanceDate" style="display: block; margin-bottom: 5px; font-weight: 500;">Date:</label>
+                    <input type="date" id="attendanceDate" name="date" required style="width: 100%; padding: 10px; border: 2px solid #D0D0D0; border-radius: 4px; font-size: 16px;">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Add Attendance</button>
+                </div>
+            </form>
+            <div id="addMessage" class="success-message"></div>
+            <div id="addError" class="error-message"></div>
+        </div>
+        
+        {% if attendance_by_category %}
+            {% for category in categories %}
+                {% if category in attendance_by_category and attendance_by_category[category]|length > 0 %}
+                <div class="category-section">
+                    <div class="category-header">
+                        <h2 class="category-title">{{ category }}</h2>
+                        <span class="category-count">{{ category_totals.get(category, 0) }} Record{{ 's' if category_totals.get(category, 0) != 1 else '' }}</span>
+                    </div>
+                    
+                    {% for date_key in attendance_by_category[category].keys() %}
+                        {% set date_records = attendance_by_category[category][date_key] %}
+                        <div class="date-group">
+                            <div class="date-header">
+                                {{ date_records[0].date_str }}
+                                <span style="font-weight: normal; color: #666; margin-left: 10px;">
+                                    ({{ date_records|length }} student{{ 's' if date_records|length != 1 else '' }})
+                                </span>
+                            </div>
+                            <table class="attendance-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Class</th>
+                                        <th>Class Code</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in date_records %}
+                                    <tr>
+                                        <td><strong>{{ record.student_name }}</strong></td>
+                                        <td>{{ record.class_name }}</td>
+                                        <td><code style="background: #F0F0F0; padding: 4px 8px; border-radius: 4px;">{{ record.class_code }}</code></td>
+                                        <td class="time-cell">{{ record.time_str }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endfor %}
+            
+            {% if attendance_by_category|length == 0 %}
+            <div class="category-section">
+                <div class="empty-state">
+                    <p>No attendance records found.</p>
+                </div>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="category-section">
+                <div class="empty-state">
+                    <p>No attendance records found.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        // Category-based categories
+        const categoryBased = [
+            {% for cat in category_based %}
+            '{{ cat }}',
+            {% endfor %}
+        ];
+        
+        const categorySelect = document.getElementById('categorySelect');
+        const classSelect = document.getElementById('classSelect');
+        const classSelectorDiv = document.getElementById('classSelectorDiv');
+        const allClassOptions = Array.from(classSelect.options);
+        
+        // Handle category selection
+        categorySelect.addEventListener('change', (e) => {
+            const selectedCategory = e.target.value;
+            const isCategoryBased = categoryBased.includes(selectedCategory);
+            
+            // Reset class select
+            classSelect.value = '';
+            
+            if (selectedCategory) {
+                if (isCategoryBased) {
+                    // Hide class selector for category-based categories
+                    classSelectorDiv.style.display = 'none';
+                    classSelect.disabled = true;
+                } else {
+                    // Show class selector and filter classes by category
+                    classSelectorDiv.style.display = 'block';
+                    allClassOptions.forEach(option => {
+                        if (option.value === '') {
+                            option.style.display = 'block';
+                            option.textContent = '-- Select a Class --';
+                        } else {
+                            const category = option.getAttribute('data-category');
+                            if (category === selectedCategory) {
+                                option.style.display = 'block';
+                            } else {
+                                option.style.display = 'none';
+                            }
+                        }
+                    });
+                    classSelect.disabled = false;
+                }
+            } else {
+                classSelectorDiv.style.display = 'block';
+                allClassOptions.forEach(option => {
+                    if (option.value !== '') {
+                        option.style.display = 'none';
+                    }
+                });
+                classSelect.disabled = true;
+            }
+        });
+        
+        // Quick Add Attendance functionality
+        document.getElementById('quickAddForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const category = categorySelect.value.trim();
+            const classId = classSelect.value;
+            const attendanceDate = document.getElementById('attendanceDate').value;
+            const messageDiv = document.getElementById('addMessage');
+            const errorDiv = document.getElementById('addError');
+            
+            // Hide previous messages
+            messageDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            
+            // Validation
+            if (!firstName || !lastName) {
+                errorDiv.textContent = 'Please enter both first and last name';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!category) {
+                errorDiv.textContent = 'Please select a category';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!categoryBased.includes(category) && !classId) {
+                errorDiv.textContent = 'Please select a class';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (!attendanceDate) {
+                errorDiv.textContent = 'Please select a date';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const requestBody = {
+                    first_name: firstName,
+                    last_name: lastName,
+                    category: category,
+                    date: attendanceDate
+                };
+                
+                // Only include class_id if not category-based
+                if (!categoryBased.includes(category)) {
+                    requestBody.class_id = parseInt(classId);
+                }
+                
+                const response = await fetch('/api/attendance/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.already_recorded) {
+                        messageDiv.textContent = data.message;
+                        messageDiv.style.display = 'block';
+                    } else {
+                        messageDiv.textContent = data.message;
+                        messageDiv.style.display = 'block';
+                        document.getElementById('quickAddForm').reset();
+                        classSelectorDiv.style.display = 'block';
+                        classSelect.disabled = true;
+                    }
+                    
+                    // Reload page after 1.5 seconds to show new attendance
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = data.error || 'Error adding attendance';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

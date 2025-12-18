@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Sign In - Attendance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Mobile-first responsive design */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .attendance-form {
+            margin-top: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #00308F;
+        }
+        
+        .form-group select,
+        .form-group input {
+            padding: 12px;
+            border: 2px solid #D0D0D0;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 400px;
+            background: #ffffff;
+        }
+        
+        .student-checklist {
+            margin-top: 30px;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 2px solid #D0D0D0;
+            border-radius: 6px;
+            padding: 20px;
+            background: #F8F9FA;
+        }
+        
+        .student-checklist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #D0D0D0;
+        }
+        
+        .student-checklist-header h3 {
+            margin: 0;
+            color: #00308F;
+        }
+        
+        .student-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #E0E0E0;
+            transition: background-color 0.2s;
+        }
+        
+        .student-item:hover {
+            background: #F0F7FF;
+        }
+        
+        .student-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+        
+        .student-item label {
+            flex: 1;
+            cursor: pointer;
+            margin: 0;
+            font-weight: normal;
+            color: #333;
+        }
+        
+        .student-name {
+            font-weight: 500;
+            color: #00308F;
+        }
+        
+        .submit-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #F8F9FA;
+            border-radius: 6px;
+            border: 2px solid #D0D0D0;
+        }
+        
+        .submit-section button {
+            padding: 15px 30px;
+            font-size: 18px;
+        }
+        
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #D4EDDA;
+            color: #155724;
+            border: 1px solid #C3E6CB;
+        }
+        
+        .message.error {
+            background: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+        }
+        
+        .message.show {
+            display: block;
+        }
+        
+        .selected-count {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .form-group select,
+            .form-group input {
+                max-width: 100%;
+                font-size: 18px;
+                padding: 15px;
+            }
+            
+            .student-checklist {
+                max-height: 500px;
+                padding: 15px;
+            }
+            
+            .student-item {
+                padding: 15px;
+            }
+            
+            .student-item input[type="checkbox"] {
+                width: 24px;
+                height: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Attendance Sign In</h1>
+        <p style="color: #666; margin-bottom: 20px;">
+            Select category, class (if applicable), and date, then check off students who are present.
+        </p>
+        <div class="actions desktop-view">
+            <a href="/attendance_summary" class="btn btn-secondary">← Attendance Summary</a>
+            <a href="/analytics_dashboard" class="btn btn-primary">Analytics Dashboard</a>
+        </div>
+        
+        <div class="attendance-form">
+            <form id="attendanceForm">
+                <div class="form-group">
+                    <label for="categorySelect">Category:</label>
+                    <select id="categorySelect" name="category" required>
+                        <option value="">-- Select a Category --</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group" id="classSelectorDiv" style="display: none;">
+                    <label for="classSelect">Class:</label>
+                    <select id="classSelect" name="class_id" disabled>
+                        <option value="">-- Select a Category First --</option>
+                        {% for category_name, classes_in_category in classes_by_category.items() %}
+                            {% for class_item in classes_in_category %}
+                                <option value="{{ class_item.id }}" data-category="{{ class_item.category }}" data-code="{{ class_item.code }}" style="display: none;">{{ class_item.name }} ({{ class_item.code }})</option>
+                            {% endfor %}
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="datePicker">Date:</label>
+                    <input type="date" id="datePicker" name="date" required>
+                </div>
+            </form>
+            
+            <div class="student-checklist" id="studentChecklist" style="display: none;">
+                <div class="student-checklist-header">
+                    <h3>Select Students Present</h3>
+                    <span class="selected-count" id="selectedCount">0 selected</span>
+                </div>
+                <div class="select-all-section" style="padding: 15px; background: #E8F4F8; border-radius: 4px; margin-bottom: 15px; border: 1px solid #D0D0D0;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-weight: 500; color: #00308F; margin: 0;">
+                        <input type="checkbox" id="selectAllCheckbox" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                        <span>Select All Students</span>
+                    </label>
+                </div>
+                <div id="studentList">
+                    <!-- Students will be dynamically loaded based on category selection -->
+                </div>
+            </div>
+            
+            <div class="submit-section" id="submitSection" style="display: none;">
+                <button type="button" id="submitAttendance" class="btn btn-primary">Submit Attendance</button>
+                <div id="message" class="message"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const categorySelect = document.getElementById('categorySelect');
+        const classSelect = document.getElementById('classSelect');
+        const classSelectorDiv = document.getElementById('classSelectorDiv');
+        const datePicker = document.getElementById('datePicker');
+        const studentChecklist = document.getElementById('studentChecklist');
+        const submitSection = document.getElementById('submitSection');
+        const submitBtn = document.getElementById('submitAttendance');
+        const messageDiv = document.getElementById('message');
+        const selectedCountSpan = document.getElementById('selectedCount');
+        
+        const categoryBased = [
+            {% for cat in category_based %}
+            '{{ cat }}',
+            {% endfor %}
+        ];
+        
+        // Store grouped student data from server
+        const studentsByAsYear = {
+            {% for as_year, students in students_by_as_year.items() %}
+            '{{ as_year }}': [
+                {% for student in students %}
+                {id: {{ student.id }}, first_name: '{{ student.first_name }}', last_name: '{{ student.last_name }}'},
+                {% endfor %}
+            ],
+            {% endfor %}
+        };
+        
+        const studentsByAeroClass = {
+            {% for aero_class, students in students_by_aero_class.items() %}
+            '{{ aero_class }}': [
+                {% for student in students %}
+                {id: {{ student.id }}, first_name: '{{ student.first_name }}', last_name: '{{ student.last_name }}'},
+                {% endfor %}
+            ],
+            {% endfor %}
+        };
+        
+        // Store all class options
+        const allClassOptions = Array.from(classSelect.options);
+        
+        // Set today's date as default
+        const today = new Date().toISOString().split('T')[0];
+        datePicker.value = today;
+        
+        // Function to render students grouped by AS_Year
+        function renderStudentsByAsYear() {
+            const studentList = document.getElementById('studentList');
+            studentList.innerHTML = '';
+            
+            // Sort AS_Year groups
+            const sortedYears = Object.keys(studentsByAsYear).sort();
+            
+            sortedYears.forEach(asYear => {
+                const students = studentsByAsYear[asYear];
+                if (students.length === 0) return;
+                
+                // Create group header
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'student-group-header';
+                groupHeader.style.cssText = 'font-weight: bold; font-size: 16px; color: #00308F; margin-top: 20px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #D0D0D0;';
+                groupHeader.textContent = `AS Year: ${asYear} (${students.length} cadet${students.length !== 1 ? 's' : ''})`;
+                studentList.appendChild(groupHeader);
+                
+                // Add students in this group
+                students.forEach(student => {
+                    const studentItem = document.createElement('div');
+                    studentItem.className = 'student-item';
+                    studentItem.innerHTML = `
+                        <input type="checkbox" id="student_${student.id}" value="${student.id}" class="student-checkbox">
+                        <label for="student_${student.id}" class="student-name">
+                            ${student.last_name}, ${student.first_name}
+                        </label>
+                    `;
+                    studentList.appendChild(studentItem);
+                });
+            });
+            
+            // Re-attach event listeners
+            attachCheckboxListeners();
+        }
+        
+        // Function to render students grouped by AERO_Class
+        function renderStudentsByAeroClass(selectedClassCode) {
+            const studentList = document.getElementById('studentList');
+            studentList.innerHTML = '';
+            
+            // Find matching AERO_Class groups based on selected class
+            // Match class code to AERO_Class (e.g., AERO1020 -> AERO 1020 or 1020)
+            let matchingGroups = [];
+            
+            if (selectedClassCode) {
+                // Extract number from class code (e.g., AERO1020 -> 1020)
+                const classNumber = selectedClassCode.replace(/[^0-9]/g, '');
+                const classCodeUpper = selectedClassCode.toUpperCase();
+                
+                // Find all matching groups
+                Object.keys(studentsByAeroClass).forEach(aeroClass => {
+                    const aeroClassUpper = aeroClass.toUpperCase();
+                    // Match if AERO_Class contains the class number or matches the code
+                    if (aeroClassUpper.includes(classNumber) || 
+                        aeroClassUpper.includes(classCodeUpper) ||
+                        classCodeUpper.includes(aeroClassUpper.replace(/[^0-9]/g, ''))) {
+                        matchingGroups.push(aeroClass);
+                    }
+                });
+            }
+            
+            // If no specific match, show all groups
+            if (matchingGroups.length === 0) {
+                matchingGroups = Object.keys(studentsByAeroClass);
+            }
+            
+            // Sort groups
+            matchingGroups.sort();
+            
+            matchingGroups.forEach(aeroClass => {
+                const students = studentsByAeroClass[aeroClass];
+                if (students.length === 0) return;
+                
+                // Create group header
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'student-group-header';
+                groupHeader.style.cssText = 'font-weight: bold; font-size: 16px; color: #00308F; margin-top: 20px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #D0D0D0;';
+                groupHeader.textContent = `AERO Class: ${aeroClass} (${students.length} cadet${students.length !== 1 ? 's' : ''})`;
+                studentList.appendChild(groupHeader);
+                
+                // Add students in this group
+                students.forEach(student => {
+                    const studentItem = document.createElement('div');
+                    studentItem.className = 'student-item';
+                    studentItem.innerHTML = `
+                        <input type="checkbox" id="student_${student.id}" value="${student.id}" class="student-checkbox">
+                        <label for="student_${student.id}" class="student-name">
+                            ${student.last_name}, ${student.first_name}
+                        </label>
+                    `;
+                    studentList.appendChild(studentItem);
+                });
+            });
+            
+            // Re-attach event listeners
+            attachCheckboxListeners();
+        }
+        
+        // Function to update Select All checkbox state
+        function updateSelectAllState() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (!selectAllCheckbox) return;
+            
+            const checkboxes = document.querySelectorAll('.student-checkbox');
+            const checkedCount = document.querySelectorAll('.student-checkbox:checked').length;
+            
+            if (checkboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.disabled = true;
+                return;
+            }
+            
+            selectAllCheckbox.disabled = false;
+            selectAllCheckbox.checked = checkedCount === checkboxes.length;
+        }
+        
+        // Function to attach checkbox event listeners
+        function attachCheckboxListeners() {
+            const checkboxes = document.querySelectorAll('.student-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.removeEventListener('change', updateSelectedCount);
+                checkbox.removeEventListener('change', updateSelectAllState);
+                checkbox.addEventListener('change', updateSelectedCount);
+                checkbox.addEventListener('change', updateSelectAllState);
+            });
+            updateSelectedCount();
+            updateSelectAllState();
+        }
+        
+        // Set up Select All functionality
+        function setupSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (!selectAllCheckbox) return;
+            
+            // Remove existing listener by cloning
+            const newCheckbox = selectAllCheckbox.cloneNode(true);
+            selectAllCheckbox.parentNode.replaceChild(newCheckbox, selectAllCheckbox);
+            
+            // Add new listener
+            newCheckbox.addEventListener('change', (e) => {
+                const checkboxes = document.querySelectorAll('.student-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = e.target.checked;
+                });
+                updateSelectedCount();
+            });
+        }
+        
+        // Initialize Select All on page load
+        setupSelectAll();
+        
+        // Handle category selection
+        categorySelect.addEventListener('change', (e) => {
+            const selectedCategory = e.target.value;
+            const isCategoryBased = categoryBased.includes(selectedCategory);
+            
+            // Reset selections
+            classSelect.value = '';
+            studentChecklist.style.display = 'none';
+            submitSection.style.display = 'none';
+            
+            if (selectedCategory) {
+                if (isCategoryBased) {
+                    // For category-based categories (Leadership Laboratory, Physical Training), group by AS_Year
+                    classSelectorDiv.style.display = 'none';
+                    classSelect.disabled = true;
+                    // Show student checklist if date is selected
+                    if (datePicker.value) {
+                        renderStudentsByAsYear();
+                        studentChecklist.style.display = 'block';
+                    }
+                } else {
+                    // For regular categories (Aerospace Class), show class selector
+                    classSelectorDiv.style.display = 'block';
+                    allClassOptions.forEach(option => {
+                        if (option.value === '') {
+                            option.style.display = 'block';
+                            option.textContent = '-- Select a Class --';
+                        } else {
+                            const category = option.getAttribute('data-category');
+                            if (category === selectedCategory) {
+                                option.style.display = 'block';
+                            } else {
+                                option.style.display = 'none';
+                            }
+                        }
+                    });
+                    classSelect.disabled = false;
+                }
+            } else {
+                classSelectorDiv.style.display = 'block';
+                allClassOptions.forEach(option => {
+                    if (option.value !== '') {
+                        option.style.display = 'none';
+                    }
+                });
+                classSelect.disabled = true;
+            }
+        });
+        
+        // Handle class selection
+        classSelect.addEventListener('change', (e) => {
+            if (e.target.value && datePicker.value) {
+                // Get the selected class code
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                const classCode = selectedOption.getAttribute('data-code') || '';
+                renderStudentsByAeroClass(classCode);
+                studentChecklist.style.display = 'block';
+            } else {
+                studentChecklist.style.display = 'none';
+                submitSection.style.display = 'none';
+            }
+        });
+        
+        // Handle date picker
+        datePicker.addEventListener('change', (e) => {
+            const category = categorySelect.value;
+            const isCategoryBased = categoryBased.includes(category);
+            
+            if (e.target.value) {
+                if (isCategoryBased) {
+                    renderStudentsByAsYear();
+                    studentChecklist.style.display = 'block';
+                } else if (classSelect.value) {
+                    const selectedOption = classSelect.options[classSelect.selectedIndex];
+                    const classCode = selectedOption.getAttribute('data-code') || '';
+                    renderStudentsByAeroClass(classCode);
+                    studentChecklist.style.display = 'block';
+                }
+            } else {
+                studentChecklist.style.display = 'none';
+                submitSection.style.display = 'none';
+            }
+        });
+        
+        function updateSelectedCount() {
+            const selected = document.querySelectorAll('.student-checkbox:checked').length;
+            selectedCountSpan.textContent = `${selected} selected`;
+            
+            if (selected > 0) {
+                submitSection.style.display = 'block';
+            } else {
+                submitSection.style.display = 'none';
+            }
+        }
+        
+        // Handle form submission
+        submitBtn.addEventListener('click', async () => {
+            const category = categorySelect.value;
+            const classId = classSelect.value;
+            const date = datePicker.value;
+            const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked'))
+                .map(cb => parseInt(cb.value));
+            
+            if (!category || !date) {
+                showMessage('Please select category and date', 'error');
+                return;
+            }
+            
+            if (!categoryBased.includes(category) && !classId) {
+                showMessage('Please select a class', 'error');
+                return;
+            }
+            
+            if (selectedStudents.length === 0) {
+                showMessage('Please select at least one student', 'error');
+                return;
+            }
+            
+            // Disable button during submission
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            try {
+                const response = await fetch('/api/attendance/bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        student_ids: selectedStudents,
+                        class_id: classId || null,
+                        category: category,
+                        date: date
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage(
+                        `Success! Attendance recorded for ${data.recorded} student(s). ${data.skipped > 0 ? `${data.skipped} already recorded.` : ''}`,
+                        'success'
+                    );
+                    
+                    // Clear selections after 2 seconds
+                    setTimeout(() => {
+                        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+                        updateSelectedCount();
+                        showMessage('', 'success');
+                    }, 2000);
+                } else {
+                    showMessage(`Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Attendance';
+            }
+        });
+        
+        function showMessage(text, type) {
+            if (text) {
+                messageDiv.textContent = text;
+                messageDiv.className = `message ${type} show`;
+            } else {
+                messageDiv.className = 'message';
+            }
+        }
+    </script>
+</body>
+</html>
