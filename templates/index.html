@@ -3,608 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Summary - Admin</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Det 320 | Attendance Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        .category-section {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            border: 1px solid #D0D0D0;
-            border-left: 4px solid #00308F;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .category-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #E0E0E0;
-        }
-        .category-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #00308F;
-            margin: 0;
-        }
-        .category-count {
-            background: #00308F;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .date-group {
-            margin-bottom: 30px;
-            border: 1px solid #E0E0E0;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-        .date-header {
-            background: #F8F9FA;
-            padding: 12px 20px;
-            border-bottom: 2px solid #D0D0D0;
-            font-weight: 600;
-            color: #00308F;
-            font-size: 16px;
-        }
-        .attendance-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .attendance-table th {
-            background: #F8F9FA;
-            color: #00308F;
-            padding: 10px 15px;
-            text-align: left;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid #D0D0D0;
-        }
-        .attendance-table td {
-            padding: 10px 15px;
-            border-bottom: 1px solid #E8E8E8;
-        }
-        .attendance-table tbody tr:hover {
-            background: #F8F9FA;
-        }
-        .time-cell {
-            color: #999;
-            font-size: 13px;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-            font-style: italic;
-        }
-        .quick-add-section {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            border: 1px solid #D0D0D0;
-            border-left: 4px solid #5D6D7E;
-        }
-        .quick-add-form {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto;
-            gap: 15px;
-            align-items: end;
-        }
-        @media (max-width: 1200px) {
-            .quick-add-form {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-        .quick-add-form input {
-            padding: 10px;
-            border: 2px solid #D0D0D0;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .quick-add-form button {
-            padding: 10px 20px;
-            white-space: nowrap;
-        }
-        .success-message {
-            background: #D4EDDA;
-            color: #155724;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            display: none;
-        }
-        .error-message {
-            background: #F8D7DA;
-            color: #721C24;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            display: none;
-        }
-        
-        .delete-btn {
-            background: #C8102E;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 12px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: all 0.2s;
-            line-height: 1;
-        }
-        
-        .delete-btn:hover {
-            background: #A00D26;
-            transform: scale(1.1);
-        }
-        
-        .delete-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .delete-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .attendance-table tr {
-            transition: opacity 0.3s, transform 0.3s;
-        }
-        
-        .attendance-table tr.deleting {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        
-        /* Mobile optimizations */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
-            .container {
-                padding: 15px;
-            }
-            
-            h1 {
-                font-size: 24px;
-                margin-bottom: 15px;
-            }
-            
-            .actions {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-                margin-bottom: 20px;
-            }
-            
-            .actions .btn {
-                width: 100%;
-                margin: 0;
-                padding: 14px 20px;
-                font-size: 16px;
-                text-align: center;
-            }
-            
-            .quick-add-section {
-                padding: 15px;
-                margin-bottom: 20px;
-            }
-            
-            .quick-add-form {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-            
-            .quick-add-form input,
-            .quick-add-form select {
-                font-size: 16px;
-                padding: 14px;
-            }
-            
-            .quick-add-form button {
-                width: 100%;
-                padding: 14px;
-                font-size: 16px;
-            }
-            
-            .category-section {
-                padding: 15px;
-                margin-bottom: 20px;
-            }
-            
-            .category-title {
-                font-size: 20px;
-            }
-            
-            .date-header {
-                padding: 10px 15px;
-                font-size: 14px;
-            }
-            
-            .attendance-table {
-                font-size: 14px;
-            }
-            
-            .attendance-table th,
-            .attendance-table td {
-                padding: 8px;
-            }
-            
-            .delete-btn {
-                padding: 8px 10px;
-                font-size: 18px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            body {
-                padding: 5px;
-            }
-            
-            .container {
-                padding: 12px;
-            }
-            
-            h1 {
-                font-size: 22px;
-            }
-            
-            .category-title {
-                font-size: 18px;
-            }
-        }
+        :root { --af-blue: #003087; --af-silver: #a7a9ac; --danger: #dc3545; --success: #28a745; --warning: #f59e0b; --bg: #f8fafc; --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; padding: 0; color: #1e293b; }
+        .hero { background: linear-gradient(135deg, var(--af-blue) 0%, #001d51 100%); color: white; padding: 60px 20px; text-align: center; border-bottom: 5px solid var(--af-silver); margin-bottom: -50px; }
+        .hero h1 { margin: 0; font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; }
+        .hero p { opacity: 0.9; font-size: 1.1rem; margin-top: 10px; max-width: 600px; margin: 10px auto 0; }
+        .container { max-width: 850px; margin: auto; padding: 0 20px 50px 20px; }
+        .search-box { background: white; padding: 40px; border-radius: 16px; box-shadow: var(--card-shadow); text-align: center; position: relative; z-index: 10; }
+        .input-group { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+        input[type="text"], textarea { padding: 15px 20px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; outline: none; }
+        button.primary-btn { padding: 15px 30px; background: var(--af-blue); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: all 0.2s; }
+        button.primary-btn:hover { background: #002366; transform: translateY(-1px); }
+        .report-btn { background: #fff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: #64748b; }
+        .dashboard-header { background: white; padding: 30px; border-radius: 16px; margin-top: 30px; border-left: 8px solid var(--af-blue); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 25px; }
+        .card { background: white; padding: 25px; border-radius: 16px; border-top: 6px solid var(--af-blue); text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .stat { font-size: 3rem; font-weight: 800; color: #0f172a; margin: 10px 0; }
+        .week-section { margin-top: 20px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
+        .week-header { background: #f1f5f9; padding: 15px 20px; font-weight: 700; color: #475569; display: flex; justify-content: space-between; }
+        .record-row { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
+        .cat-tag { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; color: #475569; margin-left: 10px; }
+        #correction-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .modal { background: white; padding: 30px; border-radius: 16px; max-width: 400px; width: 90%; }
+        .status-icon { font-size: 1.4rem; min-width: 25px; display: inline-block; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📊 Attendance Summary</h1>
-        <p style="color: #666; margin-bottom: 20px; font-style: italic;">
-            Desktop-optimized view for attendance analysis and disciplinary review by leadership and cadre.
-        </p>
-        
-        <div class="actions">
-            <a href="/attendance_sign_in" class="btn btn-primary">Attendance Sign In</a>
-            <a href="/analytics_dashboard" class="btn btn-primary">Analytics Dashboard</a>
-            <a href="/student_management" class="btn btn-secondary">Student Management</a>
+<div class="hero"><h1>Attendance Portal</h1><p>Detachment 320 Readiness & Accountability</p></div>
+<div class="container">
+    <div class="search-box">
+        <div class="input-group">
+            <input type="text" id="sid" placeholder="Enter Student ID">
+            <button class="primary-btn" onclick="loadDashboard()">Generate Report</button>
         </div>
-        
-        <!-- Quick Add Attendance Section -->
-        <div class="quick-add-section">
-            <h2 style="margin-top: 0; color: #00308F;">Quick Add Attendance</h2>
-            <form id="quickAddForm" class="quick-add-form">
-                <div>
-                    <label for="firstName" style="display: block; margin-bottom: 5px; font-weight: 500;">First Name:</label>
-                    <input type="text" id="firstName" name="first_name" required autocomplete="given-name">
-                </div>
-                <div>
-                    <label for="lastName" style="display: block; margin-bottom: 5px; font-weight: 500;">Last Name:</label>
-                    <input type="text" id="lastName" name="last_name" required autocomplete="family-name">
-                </div>
-                <div>
-                    <label for="categorySelect" style="display: block; margin-bottom: 5px; font-weight: 500;">Category:</label>
-                    <select id="categorySelect" name="category" required style="width: 100%; padding: 10px; border: 2px solid #D0D0D0; border-radius: 4px; font-size: 16px;">
-                        <option value="">-- Select Category --</option>
-                        {% for category in categories %}
-                        <option value="{{ category }}">{{ category }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div id="classSelectorDiv">
-                    <label for="classSelect" style="display: block; margin-bottom: 5px; font-weight: 500;">Class:</label>
-                    <select id="classSelect" name="class_id" style="width: 100%; padding: 10px; border: 2px solid #D0D0D0; border-radius: 4px; font-size: 16px;" disabled>
-                        <option value="">-- Select Category First --</option>
-                        {% for category, classes in classes_by_category.items() %}
-                            {% for class in classes %}
-                            <option value="{{ class.id }}" data-category="{{ class.category }}" style="display: none;">{{ class.name }} ({{ class.code }})</option>
-                            {% endfor %}
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="attendanceDate" style="display: block; margin-bottom: 5px; font-weight: 500;">Date:</label>
-                    <input type="date" id="attendanceDate" name="date" required style="width: 100%; padding: 10px; border: 2px solid #D0D0D0; border-radius: 4px; font-size: 16px;">
-                </div>
-                <div>
-                    <button type="submit" class="btn btn-primary">Add Attendance</button>
-                </div>
-            </form>
-            <div id="addMessage" class="success-message"></div>
-            <div id="addError" class="error-message"></div>
-        </div>
-        
-        {% if attendance_by_category %}
-            {% for category in categories %}
-                {% if category in attendance_by_category and attendance_by_category[category]|length > 0 %}
-                <div class="category-section">
-                    <div class="category-header">
-                        <h2 class="category-title">{{ category }}</h2>
-                        <span class="category-count">{{ category_totals.get(category, 0) }} Record{{ 's' if category_totals.get(category, 0) != 1 else '' }}</span>
-                    </div>
-                    
-                    {% for date_key in attendance_by_category[category].keys() %}
-                        {% set date_records = attendance_by_category[category][date_key] %}
-                        <div class="date-group">
-                            <div class="date-header">
-                                {{ date_records[0].date_str }}
-                                <span style="font-weight: normal; color: #666; margin-left: 10px;">
-                                    ({{ date_records|length }} student{{ 's' if date_records|length != 1 else '' }})
-                                </span>
-                            </div>
-                            <table class="attendance-table">
-                                <thead>
-                                    <tr>
-                                        <th>Student Name</th>
-                                        <th>Class</th>
-                                        <th>Class Code</th>
-                                        <th>Time</th>
-                                        <th style="width: 80px; text-align: center;">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for record in date_records %}
-                                    <tr id="attendance-row-{{ record.attendance_id }}">
-                                        <td><strong>{{ record.student_name }}</strong></td>
-                                        <td>{{ record.class_name }}</td>
-                                        <td><code style="background: #F0F0F0; padding: 4px 8px; border-radius: 4px;">{{ record.class_code }}</code></td>
-                                        <td class="time-cell">{{ record.time_str }}</td>
-                                        <td style="text-align: center;">
-                                            <button class="delete-btn" 
-                                                    data-attendance-id="{{ record.attendance_id }}"
-                                                    data-student-name="{{ record.student_name }}"
-                                                    data-class-name="{{ record.class_name }}"
-                                                    title="Delete this attendance record"
-                                                    aria-label="Delete attendance for {{ record.student_name }}">
-                                                🗑️
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            {% endfor %}
-            
-            {% if attendance_by_category|length == 0 %}
-            <div class="category-section">
-                <div class="empty-state">
-                    <p>No attendance records found.</p>
-                </div>
-            </div>
-            {% endif %}
-        {% else %}
-            <div class="category-section">
-                <div class="empty-state">
-                    <p>No attendance records found.</p>
-                </div>
-            </div>
-        {% endif %}
     </div>
-    
-    <script>
-        // Category-based categories
-        const categoryBased = [
-            {% for cat in category_based %}
-            '{{ cat }}',
-            {% endfor %}
-        ];
-        
-        const categorySelect = document.getElementById('categorySelect');
-        const classSelect = document.getElementById('classSelect');
-        const classSelectorDiv = document.getElementById('classSelectorDiv');
-        const allClassOptions = Array.from(classSelect.options);
-        
-        // Handle category selection
-        categorySelect.addEventListener('change', (e) => {
-            const selectedCategory = e.target.value;
-            const isCategoryBased = categoryBased.includes(selectedCategory);
-            
-            // Reset class select
-            classSelect.value = '';
-            
-            if (selectedCategory) {
-                if (isCategoryBased) {
-                    // Hide class selector for category-based categories
-                    classSelectorDiv.style.display = 'none';
-                    classSelect.disabled = true;
-                } else {
-                    // Show class selector and filter classes by category
-                    classSelectorDiv.style.display = 'block';
-                    allClassOptions.forEach(option => {
-                        if (option.value === '') {
-                            option.style.display = 'block';
-                            option.textContent = '-- Select a Class --';
-                        } else {
-                            const category = option.getAttribute('data-category');
-                            if (category === selectedCategory) {
-                                option.style.display = 'block';
-                            } else {
-                                option.style.display = 'none';
-                            }
-                        }
-                    });
-                    classSelect.disabled = false;
-                }
-            } else {
-                classSelectorDiv.style.display = 'block';
-                allClassOptions.forEach(option => {
-                    if (option.value !== '') {
-                        option.style.display = 'none';
-                    }
+    <div id="dashboard" style="display:none;">
+        <div class="dashboard-header"><h1 id="dispName" style="margin:0;"></h1><p id="dispInfo" style="margin:5px 0 0 0; color:#64748b; font-weight:600;"></p></div>
+        <div class="grid" id="dispGrid"></div>
+        <h3 style="margin-top:40px; color:#334155; font-weight:800;">Requirement Tracker</h3>
+        <div id="historyGroups"></div>
+    </div>
+</div>
+<div id="correction-overlay"><div class="modal">
+    <h3 style="margin-top:0">Report Issue</h3><p id="modal-date" style="font-weight:600; color:var(--af-blue);"></p>
+    <textarea id="reason" rows="4" style="width:100%; box-sizing:border-box;" placeholder="Explain why you were present or excused..."></textarea>
+    <div style="display:flex; gap:10px; margin-top:15px;"><button class="primary-btn" style="flex:1" onclick="sendCorrection()">Submit</button><button class="primary-btn" style="flex:1; background:#64748b;" onclick="closeModal()">Cancel</button></div>
+</div></div>
+<script>
+    let activeCadet = {}; let activeDate = "";
+    async function loadDashboard() {
+        const id = document.getElementById('sid').value; if (!id) return;
+        document.getElementById('dashboard').style.display = 'none';
+        try {
+            const ts = new Date().getTime();
+            const response = await fetch(`https://attendance-afrotcdet320.pythonanywhere.com/api/student/my_attendance?student_id=${id}&t=${ts}`);
+            const data = await response.json(); if (data.error) { alert(data.error); return; }
+            activeCadet = { name: data.name, id: id };
+            document.getElementById('dispName').innerText = data.name;
+            let yr = data.as_year || 'X';
+            document.getElementById('dispInfo').innerText = `${yr.toString().includes('AS') ? yr : 'AS'+yr+'00'} | ${data.flight || 'Unassigned'} Flight`;
+            let gHtml = '';
+            for (const [cat, s] of Object.entries(data.analytics)) {
+                const col = s.percentage < 80 ? 'var(--danger)' : 'var(--af-blue)';
+                gHtml += `<div class="card" style="border-top-color:${col}"><div style="color:#64748b; font-size:0.85rem; font-weight:700; text-transform:uppercase;">${cat}</div><div class="stat">${s.percentage}%</div><div style="font-size:0.85rem; color:#94a3b8; font-weight:600;">Overall Attendance</div></div>`;
+            }
+            document.getElementById('dispGrid').innerHTML = gHtml;
+            let hHtml = ''; const sortedWeeks = Object.keys(data.grouped_history).sort((a,b) => new Date(b) - new Date(a));
+            sortedWeeks.forEach(week => {
+                hHtml += `<div class="week-section"><div class="week-header"><span>Week of ${week}</span></div>`;
+                data.grouped_history[week].forEach(r => {
+                    let icon = "✅", rowStyle = "", showReport = false;
+                    if (r.status === "MISSED") { icon = "❌"; rowStyle = "background-color:#fff5f5;"; showReport = true; }
+                    else if (r.status === "OPTIONAL_MISSED") { icon = "⚠️"; rowStyle = "background-color:#fffbeb;"; showReport = true; }
+                    else if (r.status === "OPTIONAL_OK") { icon = '<span style="color:var(--af-silver); opacity:0.5;">⬜</span>'; rowStyle = "opacity:0.8;"; }
+                    hHtml += `<div class="record-row" style="${rowStyle}"><div style="display:flex; align-items:center; gap:12px;"><span class="status-icon">${icon}</span><div><span style="font-weight:700">${r.date_str}</span><span class="cat-tag">${r.category}</span></div></div><div style="text-align:right"><div style="font-weight:600; font-size:0.9rem;">${r.class_name} ${showReport ? `<button class="report-btn" onclick="openModal('${r.date_str}')">Report</button>` : ""}</div><div style="font-size:0.75rem; color:#64748b; font-weight:600">${r.type}</div></div></div>`;
                 });
-                classSelect.disabled = true;
-            }
-        });
-        
-        // Quick Add Attendance functionality
-        document.getElementById('quickAddForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const firstName = document.getElementById('firstName').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
-            const category = categorySelect.value.trim();
-            const classId = classSelect.value;
-            const attendanceDate = document.getElementById('attendanceDate').value;
-            const messageDiv = document.getElementById('addMessage');
-            const errorDiv = document.getElementById('addError');
-            
-            // Hide previous messages
-            messageDiv.style.display = 'none';
-            errorDiv.style.display = 'none';
-            
-            // Validation
-            if (!firstName || !lastName) {
-                errorDiv.textContent = 'Please enter both first and last name';
-                errorDiv.style.display = 'block';
-                return;
-            }
-            
-            if (!category) {
-                errorDiv.textContent = 'Please select a category';
-                errorDiv.style.display = 'block';
-                return;
-            }
-            
-            if (!categoryBased.includes(category) && !classId) {
-                errorDiv.textContent = 'Please select a class';
-                errorDiv.style.display = 'block';
-                return;
-            }
-            
-            if (!attendanceDate) {
-                errorDiv.textContent = 'Please select a date';
-                errorDiv.style.display = 'block';
-                return;
-            }
-            
-            try {
-                const requestBody = {
-                    first_name: firstName,
-                    last_name: lastName,
-                    category: category,
-                    date: attendanceDate
-                };
-                
-                // Only include class_id if not category-based
-                if (!categoryBased.includes(category)) {
-                    requestBody.class_id = parseInt(classId);
-                }
-                
-                const response = await fetch('/api/attendance/add', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    if (data.already_recorded) {
-                        messageDiv.textContent = data.message;
-                        messageDiv.style.display = 'block';
-                    } else {
-                        messageDiv.textContent = data.message;
-                        messageDiv.style.display = 'block';
-                        document.getElementById('quickAddForm').reset();
-                        classSelectorDiv.style.display = 'block';
-                        classSelect.disabled = true;
-                    }
-                    
-                    // Reload page after 1.5 seconds to show new attendance
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    errorDiv.textContent = data.error || 'Error adding attendance';
-                    errorDiv.style.display = 'block';
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Error: ' + error.message;
-                errorDiv.style.display = 'block';
-            }
-        });
-        
-        // Delete attendance record functionality
-        document.addEventListener('DOMContentLoaded', () => {
-            const deleteButtons = document.querySelectorAll('.delete-btn');
-            
-            deleteButtons.forEach(button => {
-                button.addEventListener('click', async function() {
-                    const attendanceId = this.getAttribute('data-attendance-id');
-                    const studentName = this.getAttribute('data-student-name');
-                    const className = this.getAttribute('data-class-name');
-                    const row = document.getElementById(`attendance-row-${attendanceId}`);
-                    
-                    // Confirm deletion
-                    if (!confirm(`Are you sure you want to delete the attendance record for ${studentName} in ${className}?`)) {
-                        return;
-                    }
-                    
-                    // Disable button and show deleting state
-                    this.disabled = true;
-                    this.textContent = '⏳';
-                    if (row) {
-                        row.classList.add('deleting');
-                    }
-                    
-                    try {
-                        const response = await fetch(`/api/attendance/${attendanceId}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        
-                        const data = await response.json();
-                        
-                        if (response.ok) {
-                            // Remove the row with animation
-                            if (row) {
-                                row.style.transition = 'opacity 0.3s, transform 0.3s';
-                                row.style.opacity = '0';
-                                row.style.transform = 'translateX(-20px)';
-                                
-                                setTimeout(() => {
-                                    row.remove();
-                                    
-                                    // Reload page to update counts and refresh display
-                                    window.location.reload();
-                                }, 300);
-                            } else {
-                                window.location.reload();
-                            }
-                        } else {
-                            alert(`Error: ${data.error || 'Failed to delete attendance record'}`);
-                            this.disabled = false;
-                            this.textContent = '🗑️';
-                            if (row) {
-                                row.classList.remove('deleting');
-                            }
-                        }
-                    } catch (error) {
-                        alert(`Error: ${error.message}`);
-                        this.disabled = false;
-                        this.textContent = '🗑️';
-                        if (row) {
-                            row.classList.remove('deleting');
-                        }
-                    }
-                });
+                hHtml += `</div>`;
             });
-        });
-    </script>
+            document.getElementById('historyGroups').innerHTML = hHtml;
+            document.getElementById('dashboard').style.display = 'block';
+            window.scrollTo({ top: 300, behavior: 'smooth' });
+        } catch (e) { alert("Error connecting to server."); }
+    }
+    function openModal(date) { activeDate = date; document.getElementById('modal-date').innerText = "Session: " + date; document.getElementById('correction-overlay').style.display = 'flex'; }
+    function closeModal() { document.getElementById('correction-overlay').style.display = 'none'; }
+    async function sendCorrection() {
+        const reason = document.getElementById('reason').value; if (!reason) return alert("Reason required.");
+        try {
+            const res = await fetch('https://attendance-afrotcdet320.pythonanywhere.com/api/student/submit_correction', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name: activeCadet.name, student_id: activeCadet.id, date: activeDate, reason: reason }) });
+            if (res.ok) { alert("Report Sent."); closeModal(); } else { alert("Failed."); }
+        } catch (e) { alert("Network Error."); }
+    }
+</script>
 </body>
 </html>
